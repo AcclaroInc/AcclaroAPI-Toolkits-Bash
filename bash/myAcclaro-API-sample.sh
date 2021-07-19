@@ -100,7 +100,7 @@ function createAnOrder()
 {
 	orderName=$1
 	checkNotEmpty "${orderName}" "<name>"
-	response=$(curl --location --request POST "https://${baseUrl}/api/v2/orders" 2>&1\
+	response=$(curl --silent --location --request POST "https://${baseUrl}/api/v2/orders" \
 			--header 'Content-Type: multipart/form-data' \
 			--header "Authorization: Bearer ${apiKey}" \
 			--form "name=\"${orderName}\"" \
@@ -127,7 +127,7 @@ function postString ()
 	checkNotEmpty "${sourceLang}" "<sourceLang>"
 	targertLang=$4
 	checkNotEmpty "${targertLang}" "<targertLang>"
-#	response=$(curl --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/strings" 2>&1\
+#	response=$(curl --silent --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/strings" \
 #			--header "Authorization: Bearer ${apiKey}" \
 #			--header 'Content-Type: application/json' \
 #			--data-raw "{
@@ -143,7 +143,7 @@ function postString ()
 #					}
 #				]
 #			}")
-	response=$(curl --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/strings" 2>&1\
+	response=$(curl --silent --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/strings" \
 			--header "Authorization: Bearer ${apiKey}" \
 			--header 'Content-Type: application/json' \
 			--data-raw "{
@@ -163,7 +163,7 @@ function postString ()
 		execSuccess "Your string has been posted to Order [${orderId}] and has String ID: [${stringId}]" 
 	else
 		execFailed "There was a problem while posting your string, please see bellow the response:"
-		printf "\n\t\t${response}\n\n"
+		echo ${response}
 	fi
 	resultStringId=${stringId}
 }
@@ -178,19 +178,19 @@ function sendFile ()
 	checkNotEmpty "${targetLang}" "<Target-Lang>"
 	pathToSourceFile=$4
 	checkNotEmpty "${pathToSourceFile}" "<Path to Source File>"
-	response=$(curl --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/files" 2>&1\
+	response=$(curl --silent --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/files" \
 		--header 'Content-Type: multipart/form-data' \
 		--header "Authorization: Bearer ${apiKey}" \
 		--form "sourcelang=\"${sourceLang}\"" \
 		--form "targetlang=\"${targetLang}\"" \
 		--form "file=@\"${pathToSourceFile}\"")
-	if [ $? -eq 0 ]; then
+	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		#getting the file ID using bash methods only (python strongly recommended for JSON parsing)
 		fileId=$(grep -oE '"fileid":[0-9]*' <<< "${response}" | sed 's@"fileid":@@')
 		execSuccess "Your string has been posted to Order [${orderId}] and has File ID: [${fileId}]" 
 	else
 		execFailed "There was a problem while sending your file, please see bellow the response:"
-		printf "\n\t${response}\n\n"
+		echo ${response}
 	fi
 	resultFileId=${fileId}
 }
@@ -199,9 +199,9 @@ function getOrderDetails ()
 {
 	orderId=$1
 	checkNotEmpty "${orderId}" "<OrderID>"
-	response=$(curl --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}" 2>&1 \
+	response=$(curl --silent --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}"  \
 		--header "Authorization: Bearer ${apiKey}")
-	if [ $? -eq 0 ]; then
+	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		#getting the attributes using bash methods only (python strongly recommended for JSON parsing)
 		orderName=$(grep -oE '"name":"[^"]*"' <<< "${response}" | sed 's@"name":@@')
 		orderStatus=$(grep -oE '"status":"[^"]*"' <<< "${response}" | sed 's@"status":@@')
@@ -211,7 +211,7 @@ function getOrderDetails ()
 		printf "\n\t* Order ID: ${orderId}\n\t* Order Name: ${orderName}\n\t* Status: ${orderStatus}\n\t* Process Type: ${processType}\n\t* Due date: ${dueDate}\n\n"
 	else
 		execFailed "There was a problem while getting your Order, please see bellow the response:"
-		printf "\n\t${response}\n\n"
+		echo ${response}
 	fi
 }
 
@@ -219,13 +219,13 @@ function submitOrder ()
 {
 	orderId=$1
 	checkNotEmpty "${orderId}" "<OrderID>"
-	response=$(curl --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/submit" 2>&1 \
+	response=$(curl --silent --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/submit"  \
 		--header "Authorization: Bearer ${apiKey}")
-	if [ $? -eq 0 ]; then
+	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		execSuccess "Your Order [${orderId}] has beeen submitted" 
 	else
 		execFailed "There was a problem while submitting your Order, please see bellow the response:"
-		printf "\n\t\t${response}\n\n"
+		echo ${response}
 	fi
 }
 
@@ -235,9 +235,9 @@ function getStringInfo ()
 	checkNotEmpty "${orderId}" "<OrderID>"
 	stringId=$2
 	checkNotEmpty "${stringId}" "<stringID>"
-	reponse=$(curl --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}/strings/${stringId}" 2>&1 \
+	reponse=$(curl --silent --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}/strings/${stringId}"  \
 		--header "Authorization: Bearer ${apiKey}")
-	if [ $? -eq 0 ]; then
+	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		#getting the attributes using bash methods only (python strongly recommended for JSON parsing)
 		execSuccess "Your Order [${orderId}] has the following strings submitted" 
 		translatedString=$(grep -oE '"translated_value":[^,]*,' <<< "${response}" | sed 's@"translated_value":@@')
@@ -251,7 +251,7 @@ function getStringInfo ()
 		fi
 	else
 		execFailed "There was a problem while getting your string, please see bellow the response:"
-		printf "\n\t\t${response}\n\n"
+		echo ${response}
 	fi
 }
 
@@ -263,7 +263,7 @@ function getFile ()
 	checkNotEmpty "${fileId}" "<fileID>"
 	#set a filename if needed, you can also use the "fileName" variable form the function "getFileInfo"
 	fileName="$(pwd)/output.myacclaro"
-	response=$(curl --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}/files/${fileId}" -o ${fileName} 2>&1 \
+	response=$(curl --silent --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}/files/${fileId}" -o ${fileName}  \
 		--header "Authorization: Bearer ${apiKey}")
 	if [ $? -eq 0 ]; then
 		
@@ -284,9 +284,9 @@ function getFileInfo ()
 	checkNotEmpty "${orderId}" "<OrderID>"
 	fileId=$2
 	checkNotEmpty "${fileId}" "<fileID>"
-	response=$(curl --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}/files/${fileId}/status" 2>&1 \
+	response=$(curl --silent --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}/files/${fileId}/status"  \
 		--header "Authorization: Bearer ${apiKey}")
-	if [ $? -eq 0 ]; then
+	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		#getting the attributes using bash methods only (python strongly recommended for JSON parsing)
 		fileName=$(grep -oE '"filename":"[^"]*"' <<< "${response}" | sed 's@"filename":@@')
 		fileStatus=$(grep -oE '"status":"[^"]*"' <<< "${response}" | sed 's@"status":@@')
