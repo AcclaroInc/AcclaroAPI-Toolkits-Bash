@@ -38,7 +38,7 @@ function createAnOrder()
 		execFailed "There was a problem while creating your Order, please see bellow the response:"
 		printf "\n\t\t${response}"
 	fi
-	return ${orderId}
+	result=${orderId}
 } #createAnOrder
 
 function postString ()
@@ -67,7 +67,7 @@ function postString ()
 		execFailed "There was a problem while posting your string, please see bellow the response:"
 		printf "\n\t\t${response}\n\n"
 	fi
-	return ${stringId}
+	result=${stringId}
 }
 
 function sendFile ()
@@ -86,7 +86,7 @@ function sendFile ()
 		execFailed "There was a problem while sending your file, please see bellow the response:"
 		printf "\n\t\t${response}\n\n"
 	fi
-	return ${fileId}
+	result=${fileId}
 }
 
 function getOrderDetails ()
