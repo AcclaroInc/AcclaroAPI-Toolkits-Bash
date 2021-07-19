@@ -51,7 +51,7 @@ function usage()
 		"Usage: $SCRIPT <base URL> <API key> [options] <arguments>"
 		""
 		"Command:"
-		"	<base URL>	e.g. \"https://apisandbox.acclaro.com\""
+		"	<base URL>	e.g. \"apisandbox.acclaro.com\""
 		"	<api Key>	e.g. \"pYXQiOjE2MjYyODYxOTIsInN1YiI6...\""
 		""
 		"Options:"
@@ -64,6 +64,9 @@ function usage()
 		"	--submit-order, -so <orderID>	Submits the Order for preparation."
 		"	--get-file, -gf <orderID> <fileID>	Gets a file based on its ID."
 		"	--get-file-info, -gfi <orderID> <fileID>	Gets the information of a file based on its ID."
+		""
+		"Example:"
+		"	$SCRIPT \"apisandbox.acclaro.com\" \"pYXQiOjE2MjYyODYxOTIsInN1YiI6...\" --send-file \"15554\" \"en-us\" \"de-de\" \"./mySourceFile.docx\""
 	)
 	printf "%s\n" "${txt[@]}"
 } #usage
