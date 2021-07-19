@@ -48,7 +48,7 @@ function usage()
 {
 	local txt=(
 		"Utility ${SCRIPT} for Querying myAcclaro's REST API."
-		"Usage: $SCRIPT <base URL> <API key> [options] <command> [arguments]"
+		"Usage: $SCRIPT <base URL> <API key> [options] <arguments>"
 		""
 		"Command:"
 		"	<base URL>	e.g. \"https://apisandbox.acclaro.com\""
@@ -315,11 +315,7 @@ fi
 #read arguments and execute accordingly
 while (( $# ))
 do
-	baseUrl="$1"
-	checkNotEmpty "${baseUrl}" "base URL"
-	apiKey="$2"
-	checkNotEmpty "${apiKey}" "API key"
-	case "$3" in
+	case "$1" in
 
 		--help | -h)
 			usage
@@ -330,43 +326,65 @@ do
 			version
 			exit 0
 		;;
+	esac
+	baseUrl="$1"
+	#checkNotEmpty "${baseUrl}" "base URL"
+	apiKey="$2"
+	#checkNotEmpty "${apiKey}" "API key"
+	case "$3" in
 
 		--create-order | -co)
+			checkNotEmpty "${baseUrl}" "base URL"
+			checkNotEmpty "${apiKey}" "API key"
 			createAnOrder "$4"
 			exit 0
 		;;
 		
 		--post-sting | -ps)
+			checkNotEmpty "${baseUrl}" "base URL"
+			checkNotEmpty "${apiKey}" "API key"
 			postString "$4" "$5" "$6" "$7"
 			exit 0
 		;;
 		
 		--send-file | -sf)
+			checkNotEmpty "${baseUrl}" "base URL"
+			checkNotEmpty "${apiKey}" "API key"
 			sendFile "$4" "$5" "$6" "$7"
 			exit 0
 		;;
 		
 		--get-order-details | -god)
+			checkNotEmpty "${baseUrl}" "base URL"
+			checkNotEmpty "${apiKey}" "API key"
 			getOrderDetails "$4"
 			exit 0
 		;;
 		
 		--submit-order | -so)
+			checkNotEmpty "${baseUrl}" "base URL"
+			checkNotEmpty "${apiKey}" "API key"
 			submitOrder "$4"
 			exit 0
 		;;
 		
 		--get-string-info | -gsi)
+			checkNotEmpty "${baseUrl}" "base URL"
+			checkNotEmpty "${apiKey}" "API key"
 			getStringInfo "$4" "$5"
 			exit 0
 		;;
 		
 		--get-file | -gf)
+			checkNotEmpty "${baseUrl}" "base URL"
+			checkNotEmpty "${apiKey}" "API key"
 			getFile "$4" "$5"
 			exit 0
 		;;
 		
 		--get-file-info | -gfi)
+			checkNotEmpty "${baseUrl}" "base URL"
+			checkNotEmpty "${apiKey}" "API key"
 			getFileInfo "$4" "$5"
 			exit 0
 		;;
