@@ -32,12 +32,13 @@ function execFailed()
 } #execFailed
 
 ##################
-# Checks that necesary arguments are sent before launching the function
+# Checks that necessary arguments are sent before launching the function
 ##################
 function checkNotEmpty()
 {
 	if [[ -z $1 ]]; then
-		execFailed "the following argument [$2] is empty, this argument is mandatory!"
+		execFailed "The following mandatory argument [$2] is empty."
+		exit 1
 	fi
 }
 
@@ -47,7 +48,7 @@ function checkNotEmpty()
 function usage()
 {
 	local txt=(
-		"Utility ${SCRIPT} for Querying myAcclaro's REST API."
+		"Utility ${SCRIPT} for Querying My Acclaro's REST API."
 		"Usage: $SCRIPT <base URL> <API key> [options] <arguments>"
 		""
 		"Command:"
@@ -61,8 +62,7 @@ function usage()
 		"	--post-string, -ps <orderID> <sourceString> <sourceLang> <targertLang>	Post a string."
 		"	--send-file, -sf <orderID> <sourceLang> <targertLang> <Path_to_file>	Sends a source file."
 		"	--get-order-details, -god <orderID>	Gets Order details."
-		"	--submit-order, -so <orderID>	Submits the Order for preparation."
-		"	--get-string-info, -gsi <orderID> <stringID>	Gets the String information and the translated string once completed."
+		"	--submit-order, -so <orderID>	Submits the Order for preparation and then translation."
 		"	--get-file, -gf <orderID> <fileID>	Gets a file based on its ID."
 		"	--get-file-info, -gfi <orderID> <fileID>	Gets the information of a file based on its ID."
 		""
@@ -120,14 +120,13 @@ function createAnOrder()
 		#getting the Order ID using bash methods only (python strongly recommended for JSON parsing)
 		orderId=$(grep -oE '"orderid":[0-9]*' <<< "${response}" | sed 's@"orderid":@@')
 			if [ "${string}" = "string" ]; then 
-				execSuccess "Your order for Strings has been created and has id [${orderId}]" 
+				execSuccess "Your Order for Strings has been created and has id [${orderId}]" 
 			else
-				execSuccess "Your order for Files has been created and has id [${orderId}]" 
+				execSuccess "Your Order for Files has been created and has id [${orderId}]" 
 			fi
 	else
-		execFailed "There was a problem while creating your Order, please see bellow the response:"
-		echo ${response}
-		exit 1
+		execFailed "There was a problem while creating your Order, please see the response below:"
+		printf "\n\t\t" ${response}
 	fi
 	resultOrderId=${orderId}
 } #createAnOrder
@@ -201,7 +200,7 @@ function getOrderDetails ()
 		execSuccess "Your Order [${orderId}] has the following attributes:" 
 		printf "\n\t* Order ID: ${orderId}\n\t* Order Name: ${orderName}\n\t* Status: ${orderStatus}\n\t* Process Type: ${processType}\n\t* Due date: ${dueDate}\n\n"
 	else
-		execFailed "There was a problem while getting your Order, please see bellow the response:"
+		execFailed "There was a problem while getting your Order, please see the response below:"
 		echo ${response}
 		exit 1
 	fi
@@ -216,7 +215,7 @@ function submitOrder ()
 	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		execSuccess "Your Order [${orderId}] has beeen submitted" 
 	else
-		execFailed "There was a problem while submitting your Order, please see bellow the response:"
+		execFailed "There was a problem while submitting your Order, please see the response below:"
 		echo ${response}
 		exit 1
 	fi
@@ -243,7 +242,7 @@ function getStringInfo ()
 			printf "\n\t* Translated String: ${translatedString}\n"
 		fi
 	else
-		execFailed "There was a problem while getting your string, please see bellow the response:"
+		execFailed "There was a problem while getting your string, please see the response below:"
 		echo ${response}
 		exit 1
 	fi
@@ -254,7 +253,7 @@ function getFile ()
 	orderId=$1
 	checkNotEmpty "${orderId}" "<OrderID>"
 	fileId=$2
-	checkNotEmpty "${fileId}" "<fileID>"
+	checkNotEmpty "${fileId}" "<FileID>"
 	#set a filename if needed, you can also use the "fileName" variable form the function "getFileInfo"
 	fileName="$(pwd)/output.myacclaro"
 		response=$(curl --silent --location --request GET -w "%{http_code}" "https://${baseUrl}/api/v2/orders/${orderId}/files/${fileId}" -o ${fileName}  \
@@ -279,7 +278,7 @@ function getFileInfo ()
 	orderId=$1
 	checkNotEmpty "${orderId}" "<OrderID>"
 	fileId=$2
-	checkNotEmpty "${fileId}" "<fileID>"
+	checkNotEmpty "${fileId}" "<FileID>"
 	response=$(curl --silent --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}/files/${fileId}/status"  \
 		--header "Authorization: Bearer ${apiKey}")
 	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
@@ -288,12 +287,12 @@ function getFileInfo ()
 		fileStatus=$(grep -oE '"status":"[^"]*"' <<< "${response}" | sed 's@"status":@@')
 		targetFileId=$(grep -oE '"targetfile":[0-9]*' <<< "${response}" | sed 's@"targetfile":@@')
 		if [[ "$fileStatus" == "\"complete\"" ]]; then
-			execSuccess "Your file [${fileName}] has been translated and has status: [${fileStatus}], please proceed to download the file using this ID: [${targetFileId}]" 
+			execSuccess "Your file [${fileName}] has been translated with status: [${fileStatus}], please proceed to download the file using file ID: [${targetFileId}]" 
 		else
 			execSuccess "Your file [${fileName}] has yet not been translated and has status: [${fileStatus}]" 
 		fi
 	else
-		execFailed "There was a problem while getting your file info, please see bellow the response:"
+		execFailed "There was a problem while getting your file info, please see the response below:"
 		echo ${response}
 		exit 1
 	fi
