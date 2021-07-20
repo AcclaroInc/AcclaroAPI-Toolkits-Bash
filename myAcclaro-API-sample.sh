@@ -263,7 +263,7 @@ function getFile ()
 		if [ $? -eq 0 ]; then
 			execSuccess "Your file with ID [${fileId}] has been downloaded here: ${fileName}" 
 		else
-			execFailed "failed while trying to save the file to the filesystem, please check output above."
+			execFailed "The system failed while trying to save the file, please check the error message"
 			echo ${writeFile}
 			exit 1
 		fi
