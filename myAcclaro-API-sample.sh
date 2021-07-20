@@ -62,6 +62,7 @@ function usage()
 		"	--send-file, -sf <orderID> <sourceLang> <targertLang> <Path_to_file>	Sends a source file."
 		"	--get-order-details, -god <orderID>	Gets Order details."
 		"	--submit-order, -so <orderID>	Submits the Order for preparation."
+		"	--get-string-info, -gsi <orderID> <stringID>	Gets the String information and the translated string once completed."
 		"	--get-file, -gf <orderID> <fileID>	Gets a file based on its ID."
 		"	--get-file-info, -gfi <orderID> <fileID>	Gets the information of a file based on its ID."
 		""
