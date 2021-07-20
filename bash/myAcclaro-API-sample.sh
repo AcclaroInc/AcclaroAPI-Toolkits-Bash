@@ -57,7 +57,7 @@ function usage()
 		"Options:"
 		"	--help, -h	Print help."
 		"	--version, -v	Print version."
-		"	--create-order, -co <name>	Create an Order."
+		"	--create-order, -co <name> [string]	Create an Order, if \"string\" added as parameter, then the Order takes strings rather than files."
 		"	--post-string, -ps <orderID> <sourceString> <sourceLang> <targertLang>	Post a string."
 		"	--send-file, -sf <orderID> <sourceLang> <targertLang> <Path_to_file>	Sends a source file."
 		"	--get-order-details, -god <orderID>	Gets Order details."
@@ -102,17 +102,27 @@ function version
 function createAnOrder()
 {
 	orderName=$1
+	string=$2
+	if [ "${string}" = "string" ]; then 
+		processType="--form process_type=\"string\""
+	else
+		processType=""
+	fi
 	checkNotEmpty "${orderName}" "<name>"
 	response=$(curl --silent --location --request POST "https://${baseUrl}/api/v2/orders" \
 			--header 'Content-Type: multipart/form-data' \
 			--header "Authorization: Bearer ${apiKey}" \
 			--form "name=\"${orderName}\"" \
-			#--form "process_type=\"${processType}\""
+			${processType}
 			)
-	if [ $? -eq 0 ]; then
+	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		#getting the Order ID using bash methods only (python strongly recommended for JSON parsing)
 		orderId=$(grep -oE '"orderid":[0-9]*' <<< "${response}" | sed 's@"orderid":@@')
-		execSuccess "Your order has been created and has id [${orderId}]" 
+			if [ "${string}" = "string" ]; then 
+				execSuccess "Your order for Strings has been created and has id [${orderId}]" 
+			else
+				execSuccess "Your order for Files has been created and has id [${orderId}]" 
+			fi
 	else
 		execFailed "There was a problem while creating your Order, please see bellow the response:"
 		printf "\n\t\t" ${response}
@@ -130,37 +140,11 @@ function postString ()
 	checkNotEmpty "${sourceLang}" "<sourceLang>"
 	targertLang=$4
 	checkNotEmpty "${targertLang}" "<targertLang>"
-#	response=$(curl --silent --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/strings" \
-#			--header "Authorization: Bearer ${apiKey}" \
-#			--header 'Content-Type: application/json' \
-#			--data-raw "{
-#				\"strings\": [
-#					{
-#					\"value\": \"${sourceString}\",
-#					"target_lang": [
-#						\"${targertLang}\"
-#						],
-#					\"source_lang\": \"${sourceLang}\",
-#					\"key\": \"${sourceStringKey}\",
-#					\"callback\": \"${stringCallbackUrl}\"
-#					}
-#				]
-#			}")
 	response=$(curl --silent --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/strings" \
 			--header "Authorization: Bearer ${apiKey}" \
 			--header 'Content-Type: application/json' \
-			--data-raw "{
-				\"strings\": [
-					{
-					\"value\": \"${sourceString}\",
-					"target_lang": [
-						\"${targertLang}\"
-						],
-					\"source_lang\": \"${sourceLang}\"
-					}
-				]
-			}")
-	if [ $? -eq 0 ]; then
+			--data-raw "{\"strings\":[{\"value\":\"${sourceString}\",\"target_lang\":[\"${targertLang}\"],\"source_lang\": \"${sourceLang}\"}]}")
+	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		#getting the string ID using bash methods only (python strongly recommended for JSON parsing)
 		stringId=$(grep -oE '"string_id":[0-9]*' <<< "${response}" | sed 's@"string_id":@@')
 		execSuccess "Your string has been posted to Order [${orderId}] and has String ID: [${stringId}]" 
@@ -169,18 +153,18 @@ function postString ()
 		echo ${response}
 	fi
 	resultStringId=${stringId}
-}
+} #postString
 
 function sendFile ()
 {
 	orderId=$1
 	checkNotEmpty "${orderId}" "<OrderID>"
 	sourceLang=$2
-	checkNotEmpty "${sourceLang}" "<Source-Lang>"
+	checkNotEmpty "${sourceLang}" "<sourceLang>"
 	targetLang=$3
-	checkNotEmpty "${targetLang}" "<Target-Lang>"
+	checkNotEmpty "${targetLang}" "<targertLang>"
 	pathToSourceFile=$4
-	checkNotEmpty "${pathToSourceFile}" "<Path to Source File>"
+	checkNotEmpty "${pathToSourceFile}" "<path_to_file>"
 	response=$(curl --silent --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/files" \
 		--header 'Content-Type: multipart/form-data' \
 		--header "Authorization: Bearer ${apiKey}" \
@@ -196,7 +180,7 @@ function sendFile ()
 		echo ${response}
 	fi
 	resultFileId=${fileId}
-}
+} #sendFile
 
 function getOrderDetails ()
 {
@@ -216,7 +200,7 @@ function getOrderDetails ()
 		execFailed "There was a problem while getting your Order, please see bellow the response:"
 		echo ${response}
 	fi
-}
+} #getOrderDetails
 
 function submitOrder ()
 {
@@ -230,7 +214,7 @@ function submitOrder ()
 		execFailed "There was a problem while submitting your Order, please see bellow the response:"
 		echo ${response}
 	fi
-}
+} #submitOrder
 
 function getStringInfo ()
 {
@@ -256,7 +240,7 @@ function getStringInfo ()
 		execFailed "There was a problem while getting your string, please see bellow the response:"
 		echo ${response}
 	fi
-}
+} #getStringInfo
 
 function getFile ()
 {
@@ -279,7 +263,7 @@ function getFile ()
 		execFailed "There was a problem while getting your file, please see bellow the response:"
 		echo ${response}
 	fi
-}
+} #getFile
 
 function getFileInfo ()
 {
@@ -303,7 +287,7 @@ function getFileInfo ()
 		execFailed "There was a problem while getting your file info, please see bellow the response:"
 		echo ${response}
 	fi
-}
+} #getFileInfo
 
 ################
 ###			 ###
@@ -339,7 +323,7 @@ do
 		--create-order | -co)
 			checkNotEmpty "${baseUrl}" "base URL"
 			checkNotEmpty "${apiKey}" "API key"
-			createAnOrder "$4"
+			createAnOrder "$4" "$5"
 			exit 0
 		;;
 		
@@ -399,12 +383,3 @@ do
 	esac
 done
 
-### List of functions
-#createAnOrder
-#postString
-#sendFile
-#getOrderDetails
-#submitOrder
-#getStringInfo
-#getFile
-#getFileInfo
