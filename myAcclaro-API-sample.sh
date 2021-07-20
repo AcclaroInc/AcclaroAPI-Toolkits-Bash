@@ -2,7 +2,7 @@
 
 ### "Global" variables to work with
 SCRIPT=$( basename "$0" )
-VERSION="0.0.1 alpha 1"
+VERSION="0.0.1-beta"
 orderId=""
 stringId=""
 fileId=""
