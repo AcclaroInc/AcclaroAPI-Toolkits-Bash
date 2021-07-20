@@ -222,18 +222,18 @@ function getStringInfo ()
 	checkNotEmpty "${orderId}" "<OrderID>"
 	stringId=$2
 	checkNotEmpty "${stringId}" "<stringID>"
-	reponse=$(curl --silent --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}/strings/${stringId}"  \
+	response=$(curl --silent --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}/strings/${stringId}"  \
 		--header "Authorization: Bearer ${apiKey}")
 	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		#getting the attributes using bash methods only (python strongly recommended for JSON parsing)
-		execSuccess "Your Order [${orderId}] has the following strings submitted" 
+		execSuccess " has the following strings submitted" 
 		translatedString=$(grep -oE '"translated_value":[^,]*,' <<< "${response}" | sed 's@"translated_value":@@')
 		stringStatus=$(grep -oE '"status":"[^"]*"' <<< "${response}" | sed 's@"status":@@')
 		#using the string status to evaluate if it was completed or not, can also be done the other way arround, if "complete" do this, else is not complete...
-		if [[ "$stringStatus" == "\"in progress\"" || "$stringStatus" == "\"new\"" ]]; then
-			execSuccess "The requested string [${stringId}] has not yet been translated, and its status is [${stringStatus}]."
+		if [ "$stringStatus" != "\"complete\"" ]; then
+			execSuccess "Your Order [${orderId}] has a string with ID [${stringId}] which has not yet been translated, and its status is [${stringStatus}]."
 		else
-			execSuccess "The requested string [${stringId}] has been translated."
+			execSuccess "Your Order [${orderId}] has a string with ID [${stringId}] which has been translated."
 			printf "\n\t* Translated String: ${translatedString}\n"
 		fi
 	else
@@ -250,14 +250,15 @@ function getFile ()
 	checkNotEmpty "${fileId}" "<fileID>"
 	#set a filename if needed, you can also use the "fileName" variable form the function "getFileInfo"
 	fileName="$(pwd)/output.myacclaro"
-	response=$(curl --silent --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}/files/${fileId}" -o ${fileName}  \
+		response=$(curl --silent --location --request GET -w "%{http_code}" "https://${baseUrl}/api/v2/orders/${orderId}/files/${fileId}" -o ${fileName}  \
 		--header "Authorization: Bearer ${apiKey}")
-	if [ $? -eq 0 ]; then
-		
+	if [ ${response} -eq 200 ]; then
+		writeFileTest=$(echo ${fileName} >${fileName}.test && rm ${fileName}.test)
 		if [ $? -eq 0 ]; then
 			execSuccess "Your file with ID [${fileId}] has been downloaded here: ${fileName}" 
 		else
-			execFailed "failed while trying to save the file to the filesystem, please check output"
+			execFailed "failed while trying to save the file to the filesystem, please check output above."
+			echo ${writeFile}
 		fi
 	else
 		execFailed "There was a problem while getting your file, please see bellow the response:"
