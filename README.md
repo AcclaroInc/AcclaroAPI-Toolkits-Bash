@@ -115,3 +115,5 @@ We will need to monitor the String status. Once the string is translated, the re
 ```
 myAcclaro-API-sample.sh "apisandbox.acclaro.com" "pYXQiOjE2MjYyODYxOTIsInN1YiI6..." --get-string-info 75469 245
 ```
+
+**Got any questions?** Contact support@acclaro.com or file an [issue](https://github.com/AcclaroInc/AcclaroAPI-Toolkits-Bash/issues/new)
