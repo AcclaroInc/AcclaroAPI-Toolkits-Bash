@@ -68,9 +68,13 @@ myAcclaro-API-sample.sh "apisandbox.acclaro.com" "pYXQiOjE2MjYyODYxOTIsInN1YiI6.
 ### Strings
 #### 1. Creating an Order for Strings
 ##### Option
-`--create-order, -co <name> [string]     Create an Order, if "string" added as parameter, then the Order takes strings rather than files.`
+```
+--create-order, -co <name> [string]     Create an Order, if "string" added as parameter, then the Order takes strings rather than files.
+```
 ##### Sample
-`myAcclaro-API-sample.sh "apisandbox.acclaro.com" "pYXQiOjE2MjYyODYxOTIsInN1YiI6..." --create-order "My Order Name goes here" string`
+```
+myAcclaro-API-sample.sh "apisandbox.acclaro.com" "pYXQiOjE2MjYyODYxOTIsInN1YiI6..." --create-order "My Order Name goes here" string
+```
 #### 2. Uploading Strings to the Order
 Once we have an Order opened, we will start uploading Strings to the Order, determining to which Order, and Source and Target language(s) for each file uploaded. We will use 4-letter ISO codes for the languages, e.g. English (United States) = en-us. Each uploaded String will be assigned a String ID which will be needed on later steps. 
 ##### Option
