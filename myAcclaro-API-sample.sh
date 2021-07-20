@@ -28,6 +28,7 @@ function execSuccess()
 function execFailed()
 {
 	echo "$(date +%F\ %T) :: [FAIL] - $1"
+	exit 1
 } #execFailed
 
 ##################
@@ -37,7 +38,6 @@ function checkNotEmpty()
 {
 	if [[ -z $1 ]]; then
 		execFailed "the following argument [$2] is empty, this argument is mandatory!"
-		exit 1
 	fi
 }
 
@@ -125,7 +125,8 @@ function createAnOrder()
 			fi
 	else
 		execFailed "There was a problem while creating your Order, please see bellow the response:"
-		printf "\n\t\t" ${response}
+		echo ${response}
+		exit 1
 	fi
 	resultOrderId=${orderId}
 } #createAnOrder
@@ -151,6 +152,7 @@ function postString ()
 	else
 		execFailed "There was a problem while posting your string, please see bellow the response:"
 		echo ${response}
+		exit 1
 	fi
 	resultStringId=${stringId}
 } #postString
@@ -178,6 +180,7 @@ function sendFile ()
 	else
 		execFailed "There was a problem while sending your file, please see bellow the response:"
 		echo ${response}
+		exit 1
 	fi
 	resultFileId=${fileId}
 } #sendFile
@@ -199,6 +202,7 @@ function getOrderDetails ()
 	else
 		execFailed "There was a problem while getting your Order, please see bellow the response:"
 		echo ${response}
+		exit 1
 	fi
 } #getOrderDetails
 
@@ -213,6 +217,7 @@ function submitOrder ()
 	else
 		execFailed "There was a problem while submitting your Order, please see bellow the response:"
 		echo ${response}
+		exit 1
 	fi
 } #submitOrder
 
@@ -239,6 +244,7 @@ function getStringInfo ()
 	else
 		execFailed "There was a problem while getting your string, please see bellow the response:"
 		echo ${response}
+		exit 1
 	fi
 } #getStringInfo
 
@@ -259,10 +265,11 @@ function getFile ()
 		else
 			execFailed "failed while trying to save the file to the filesystem, please check output above."
 			echo ${writeFile}
+			exit 1
 		fi
 	else
-		execFailed "There was a problem while getting your file, please see bellow the response:"
-		echo ${response}
+		execFailed "There was a problem while getting your file, the status code is [${response}]"
+		exit 1
 	fi
 } #getFile
 
@@ -287,6 +294,7 @@ function getFileInfo ()
 	else
 		execFailed "There was a problem while getting your file info, please see bellow the response:"
 		echo ${response}
+		exit 1
 	fi
 } #getFileInfo
 
@@ -316,63 +324,47 @@ do
 		;;
 	esac
 	baseUrl="$1"
-	#checkNotEmpty "${baseUrl}" "base URL"
+	checkNotEmpty "${baseUrl}" "base URL"
 	apiKey="$2"
-	#checkNotEmpty "${apiKey}" "API key"
+	checkNotEmpty "${apiKey}" "API key"
 	case "$3" in
 
 		--create-order | -co)
-			checkNotEmpty "${baseUrl}" "base URL"
-			checkNotEmpty "${apiKey}" "API key"
 			createAnOrder "$4" "$5"
 			exit 0
 		;;
 		
 		--post-sting | -ps)
-			checkNotEmpty "${baseUrl}" "base URL"
-			checkNotEmpty "${apiKey}" "API key"
 			postString "$4" "$5" "$6" "$7"
 			exit 0
 		;;
 		
 		--send-file | -sf)
-			checkNotEmpty "${baseUrl}" "base URL"
-			checkNotEmpty "${apiKey}" "API key"
 			sendFile "$4" "$5" "$6" "$7"
 			exit 0
 		;;
 		
 		--get-order-details | -god)
-			checkNotEmpty "${baseUrl}" "base URL"
-			checkNotEmpty "${apiKey}" "API key"
 			getOrderDetails "$4"
 			exit 0
 		;;
 		
 		--submit-order | -so)
-			checkNotEmpty "${baseUrl}" "base URL"
-			checkNotEmpty "${apiKey}" "API key"
 			submitOrder "$4"
 			exit 0
 		;;
 		
 		--get-string-info | -gsi)
-			checkNotEmpty "${baseUrl}" "base URL"
-			checkNotEmpty "${apiKey}" "API key"
 			getStringInfo "$4" "$5"
 			exit 0
 		;;
 		
 		--get-file | -gf)
-			checkNotEmpty "${baseUrl}" "base URL"
-			checkNotEmpty "${apiKey}" "API key"
 			getFile "$4" "$5"
 			exit 0
 		;;
 		
 		--get-file-info | -gfi)
-			checkNotEmpty "${baseUrl}" "base URL"
-			checkNotEmpty "${apiKey}" "API key"
 			getFileInfo "$4" "$5"
 			exit 0
 		;;
