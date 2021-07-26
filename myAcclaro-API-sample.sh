@@ -2,7 +2,7 @@
 
 ### "Global" variables to work with
 SCRIPT=$( basename "$0" )
-VERSION="0.0.1-beta"
+VERSION="0.0.2-beta"
 orderId=""
 stringId=""
 fileId=""
@@ -299,6 +299,26 @@ function getFileInfo ()
 	fi
 } #getFileInfo
 
+function getComments ()
+{
+	orderId=$1
+	checkNotEmpty "${orderId}" "<OrderID>"
+	response=$(curl --location --silent --request GET "https://${baseUrl}/api/v2/orders/${orderId}/comments" \
+	--header "Authorization: Bearer ${apiKey}")
+	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+		#getting the info using bash methods only (python strongly recommended for JSON parsing)
+		#commentLines=$(grep -oE '"comment":"[^"]*"' <<< "${response}" | sed 's@"comment":@@' )
+		#commnetLines=$(echo ${response} | jq '.data[] .comment' | readarray -t a)
+		execSuccess "Your Order has comments, please see comments bellow:" 
+		#echo ${commnetLines}
+		echo ${response} | jq '.data[] .comment'
+	else
+		execFailed "There was a problem while getting your comments"
+		echo ${response}
+		exit 1
+	fi
+} #getComments	
+
 ################
 ###			 ###
 ###   BODY   ###
@@ -367,6 +387,11 @@ do
 		
 		--get-file-info | -gfi)
 			getFileInfo "$4" "$5"
+			exit 0
+		;;
+		
+		--get-order-commnets | -goc)
+			getComments "$4"
 			exit 0
 		;;
 		
