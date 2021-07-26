@@ -62,6 +62,7 @@ function usage()
 		"	--post-string, -ps <orderID> <sourceString> <sourceLang> <targertLang>	Post a string."
 		"	--send-file, -sf <orderID> <sourceLang> <targertLang> <Path_to_file>	Sends a source file."
 		"	--get-order-details, -god <orderID>	Gets Order details."
+		"	--get-order-comments, -goc <orderID>	Gets the Order Comments"
 		"	--submit-order, -so <orderID>	Submits the Order for preparation and then translation."
 		"	--get-string-info, -gsi <orderID> <stringID>	Gets the String information and the translated string once completed."
 		"	--get-file, -gf <orderID> <fileID>	Gets a file based on its ID."
