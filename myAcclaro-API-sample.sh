@@ -310,9 +310,10 @@ function getComments ()
 		#getting the info using bash methods only (python strongly recommended for JSON parsing)
 		#commentLines=$(grep -oE '"comment":"[^"]*"' <<< "${response}" | sed 's@"comment":@@' )
 		#commnetLines=$(echo ${response} | jq '.data[] .comment' | readarray -t a)
-		execSuccess "Your Order has comments, please see comments bellow:" 
+		execSuccess "Your Order has comments, please see comments bellow (in CSV format):" 
 		#echo ${commnetLines}
-		echo ${response} | jq '.data[] .comment'
+		echo ${response} | jq -r '.data[] | [.author, .timestamp, .comment] | @csv' | awk -v FS="\t" 'BEGIN{print "\"Author\",\"Creation Date\",\"Comment\""}{printf "%s\t%s\t%s%s",$1,$2,$3,ORS}'
+		#jq -r '.[] | [.id, .name] | @csv' | awk -v FS="," 'BEGIN{print "ID\tName";print "============"}{printf "%s\t%s\t%s%s",$1,$2,$3,ORS}'
 	else
 		execFailed "There was a problem while getting your comments"
 		echo ${response}
