@@ -2,7 +2,7 @@
 
 ### "Global" variables to work with
 SCRIPT=$( basename "$0" )
-VERSION="0.0.1-beta"
+VERSION="0.0.3-beta"
 orderId=""
 stringId=""
 fileId=""
@@ -42,6 +42,18 @@ function checkNotEmpty()
 	fi
 }
 
+##################
+# Checks that cURL is installed
+##################
+function checkCurlInstalled()
+{
+	output=$(curl --version)
+	if [ $? -ne 0 ]; then
+		execFailed "cURL is necessary to run this script, exiting"
+		exit 1
+	fi
+} #checkCurlInstalled
+
 ##########################################
 # Message to display for usage and help. #
 ##########################################
@@ -62,6 +74,8 @@ function usage()
 		"	--post-string, -ps <orderID> <sourceString> <sourceLang> <targertLang>	Post a string."
 		"	--send-file, -sf <orderID> <sourceLang> <targertLang> <Path_to_file>	Sends a source file."
 		"	--get-order-details, -god <orderID>	Gets Order details."
+		"	--set-order-comment, -soc <orderID> <comment>	Sets a Comment for the Order"
+		"	--get-order-comments, -goc <orderID>	Gets the Order Comments"
 		"	--submit-order, -so <orderID>	Submits the Order for preparation and then translation."
 		"	--get-string-info, -gsi <orderID> <stringID>	Gets the String information and the translated string once completed."
 		"	--get-file, -gf <orderID> <fileID>	Gets a file based on its ID."
@@ -84,7 +98,7 @@ function wrongUsage()
 		"$SCRIPT --help"
 	)
 
-	[[ $message ]] && printf "$message\n"
+	[[ ${message} ]] && printf "${message}\n"
 
 	printf "%s\n" "${txt[@]}"
 } #wrongUsage
@@ -127,7 +141,7 @@ function createAnOrder()
 			fi
 	else
 		execFailed "There was a problem while creating your Order, please see the response below:"
-		printf "\n\t\t" ${response}
+		echo ${response}
 	fi
 	resultOrderId=${orderId}
 } #createAnOrder
@@ -299,6 +313,47 @@ function getFileInfo ()
 	fi
 } #getFileInfo
 
+function getComments ()
+{
+	orderId=$1
+	checkNotEmpty "${orderId}" "<OrderID>"
+	response=$(curl --location --silent --request GET "https://${baseUrl}/api/v2/orders/${orderId}/comments" \
+	--header "Authorization: Bearer ${apiKey}")
+	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+		#getting the info using bash methods only (python strongly recommended for JSON parsing)
+		#commentLines=$(grep -oE '"comment":"[^"]*"' <<< "${response}" | sed 's@"comment":@@' )
+		#commnetLines=$(echo ${response} | jq '.data[] .comment' | readarray -t a)
+		execSuccess "Your Order [${orderId}] has comments, please see comments bellow (in CSV format):" 
+		#echo ${commnetLines}
+		echo ${response} | jq -r '.data[] | [.author, .timestamp, .comment] | @csv' | awk -v FS="\t" 'BEGIN{print "\"Author\",\"Creation Date\",\"Comment\""}{printf "%s\t%s\t%s%s",$1,$2,$3,ORS}'
+	else
+		execFailed "There was a problem while getting your comments"
+		echo ${response}
+		exit 1
+	fi
+} #getComments	
+
+function setComment ()
+{
+	orderId=$1
+	checkNotEmpty "${orderId}" "<OrderID>"
+	commentLine=$2
+	checkNotEmpty "${commentLine}" "<Comment>"
+	response=$(curl --location --silent --request POST "https://${baseUrl}/api/v2/orders/${orderId}/comment" \
+	--header "Authorization: Bearer ${apiKey}" \
+	--data-urlencode "comment=${commentLine}")
+	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+		execSuccess "Your Order [${orderId}] has been added the following comment:"
+		echo "	****** Comment Start ******"
+		echo "	*    ${commentLine}"
+		echo "	****** Comment End ******"
+	else
+		execFailed "There was a problem while posting your comment"
+		echo ${response}
+		exit 1
+	fi
+} #setComment
+
 ################
 ###			 ###
 ###   BODY   ###
@@ -323,7 +378,10 @@ do
 			version
 			exit 0
 		;;
+		
 	esac
+
+	checkCurlInstalled
 	baseUrl="$1"
 	checkNotEmpty "${baseUrl}" "base URL"
 	apiKey="$2"
@@ -369,6 +427,17 @@ do
 			getFileInfo "$4" "$5"
 			exit 0
 		;;
+		
+		--get-order-commnets | -goc)
+			getComments "$4"
+			exit 0
+		;;
+		
+		--set-order-commnet | -soc)
+			setComment "$4" "$5"
+			exit 0
+		;;
+		
 		
 		*)
 			wrongUsage "Option/command not recognized. Please use --help to see what arguments are valid."
