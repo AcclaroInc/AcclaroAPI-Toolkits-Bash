@@ -43,6 +43,16 @@ function checkNotEmpty()
 }
 
 ##################
+# Checks if CSV output is requested
+##################
+function outputCsv()
+{
+	if [[ "$1" == "-csv" ]]; then
+		csvOutput=true
+	fi
+}
+
+##################
 # Checks that cURL is installed
 ##################
 function checkCurlInstalled()
@@ -74,6 +84,7 @@ function usage()
 		"	--post-string, -ps <orderID> <sourceString> <sourceLang> <targertLang>	Post a string."
 		"	--send-file, -sf <orderID> <sourceLang> <targertLang> <Path_to_file>	Sends a source file."
 		"	--get-order-details, -god <orderID>	Gets Order details."
+		"	--get-all-order-details, -gaod <orderID>	Gets All Order details."
 		"	--set-order-comment, -soc <orderID> <comment>	Sets a Comment for the Order"
 		"	--get-order-comments, -goc <orderID>	Gets the Order Comments"
 		"	--submit-order, -so <orderID>	Submits the Order for preparation and then translation."
@@ -221,6 +232,25 @@ function getOrderDetails ()
 	fi
 } #getOrderDetails
 
+function getAllOrderDetails ()
+{
+	outputCsv $1
+	response=$(curl --silent --location --request GET "https://${baseUrl}/api/v2/orders"  \
+		--header "Authorization: Bearer ${apiKey}")
+	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+		if [ "${csvOutput}" = true ]; then
+			echo ${response} | jq -r '.data[] | [.orderid, .name, .status, .process_type, .user.email, .duedate] | @csv' | awk -v FS="\t" 'BEGIN{print "\"Order ID\",\"Order Name\",\"Status\",\"Type\",\"Creator\",\"Due Date\""}{printf "%s\t%s\t%s%s\t%s\t%s\t%s",$1,$2,$3,$4,$5,$6,ORS}'
+		else
+			execSuccess "Please see a list of Orders bellow" 
+			echo ${response} | jq -r '["Order ID","Order Name","Status","Process Type","Creator","Due Date"], ["--------","----------","------","------------","-------","--------"], (.data[] | [.orderid, .name, .status, .process_type, .user.email, .duedate]) | @tsv' | column -ts $'\t'
+		fi
+	else
+		execFailed "There was a problem while getting your Order, please see the response below:"
+		echo ${response}
+		exit 1
+	fi
+} #getOrderDetails
+
 function submitOrder ()
 {
 	orderId=$1
@@ -317,15 +347,16 @@ function getComments ()
 {
 	orderId=$1
 	checkNotEmpty "${orderId}" "<OrderID>"
+	outputCsv $2
 	response=$(curl --location --silent --request GET "https://${baseUrl}/api/v2/orders/${orderId}/comments" \
 	--header "Authorization: Bearer ${apiKey}")
 	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
-		#getting the info using bash methods only (python strongly recommended for JSON parsing)
-		#commentLines=$(grep -oE '"comment":"[^"]*"' <<< "${response}" | sed 's@"comment":@@' )
-		#commnetLines=$(echo ${response} | jq '.data[] .comment' | readarray -t a)
-		execSuccess "Your Order [${orderId}] has comments, please see comments bellow (in CSV format):" 
-		#echo ${commnetLines}
-		echo ${response} | jq -r '.data[] | [.author, .timestamp, .comment] | @csv' | awk -v FS="\t" 'BEGIN{print "\"Author\",\"Creation Date\",\"Comment\""}{printf "%s\t%s\t%s%s",$1,$2,$3,ORS}'
+		if [ "${csvOutput}" = true ]; then
+			echo ${response} | jq -r '.data[] | [.author, .timestamp, .comment] | @csv' | awk -v FS="\t" 'BEGIN{print "\"Author\",\"Creation Date\",\"Comment\""}{printf "%s\t%s\t%s%s",$1,$2,$3,ORS}'	
+		else
+			execSuccess "Your Order [${orderId}] has comments, please see comments bellow:" 
+			echo ${response} | jq -r '["Author","Timestamp","Comment"], ["------","---------","-------"], (.data[] | [.author, .timestamp, .comment] ) | @tsv' | column -ts $'\t'
+		fi
 	else
 		execFailed "There was a problem while getting your comments"
 		echo ${response}
@@ -408,6 +439,11 @@ do
 			exit 0
 		;;
 		
+		--get-all-order-details | -gaod)
+			getAllOrderDetails "$4"
+			exit 0
+		;;
+		
 		--submit-order | -so)
 			submitOrder "$4"
 			exit 0
@@ -429,7 +465,7 @@ do
 		;;
 		
 		--get-order-commnets | -goc)
-			getComments "$4"
+			getComments "$4" "$5"
 			exit 0
 		;;
 		
