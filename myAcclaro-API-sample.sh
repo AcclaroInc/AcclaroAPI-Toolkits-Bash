@@ -91,6 +91,9 @@ function usage()
 		"	--get-string-info, -gsi <orderID> <stringID>	Gets the String information and the translated string once completed."
 		"	--get-file, -gf <orderID> <fileID>	Gets a file based on its ID."
 		"	--get-file-info, -gfi <orderID> <fileID>	Gets the information of a file based on its ID."
+		"	--request-quote, -rq <orderID>	Requests a quote for the Order."
+		"	--get-quote-details, -gqd <orderID>	Gets the Quote status for the Order."
+		"	--quote-decision, -qd <orderID> [--approve,-a/--decline,-d]	Approves/declines the quoted price for the Order."
 		""
 		"Example:"
 		"	$SCRIPT \"apisandbox.acclaro.com\" \"pYXQiOjE2MjYyODYxOTIsInN1YiI6...\" --send-file \"15554\" \"en-us\" \"de-de\" \"./mySourceFile.docx\""
@@ -385,6 +388,104 @@ function setComment ()
 	fi
 } #setComment
 
+function requestQuote()
+{
+	orderId=$1
+	checkNotEmpty "${orderId}" "<OrderID>"
+	response=$(curl --location --silent --request GET "https://${baseUrl}/api/v2/orders/${orderId}/quote" \
+	--header "Authorization: Bearer ${apiKey}")
+	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+		execSuccess "Quote succesfully requested for Order [${orderId}]" 
+	else
+		execFailed "There was a problem while requestiong your Quote for Order [${orderId}]"
+		echo ${response}
+		exit 1
+	fi
+}
+
+function getQuoteDetails()
+{
+	orderId=$1
+	checkNotEmpty "${orderId}" "<OrderID>"
+	response=$(curl --location --silent --request GET "https://${baseUrl}/api/v2/orders/${orderId}/quote-details" \
+	--header "Authorization: Bearer ${apiKey}")
+	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+		totalQuote=$(echo ${response} | jq -r .data.total)
+		#arrayLength=$(echo ${response} | jq -r '(.data.lines | length)')
+		#echo ${arrayLength}
+		execSuccess "Quote details for Order [${orderId}] are bellow:"
+		echo ${response} | jq -r '["Description","Quantity","Unit Price","Subtotal"], ["-----------","--------","----------","--------"], (.data.lines[] | [.description, .quantity, "$"+.unitprice, "$"+.price])  | @tsv' | column -ts $'\t'
+		echo "** TOTAL: \$${totalQuote}" 
+	else
+		execFailed "There was a problem while getting your Quote"
+		echo ${response}
+		exit 1
+	fi
+}
+
+
+function quoteWorkflow()
+{
+	orderId=$1
+	checkNotEmpty "${orderId}" "<OrderID>"
+	checkNotEmpty "$2" "<--approve/--decline>"
+	case "$2" in
+		--approve | -a)
+			quoteDecision="quote-approve"
+			verbPresCont="approving"
+			verbPast="approved"
+			#response=$(curl --location --silent --request POST "https://${baseUrl}/api/v2/orders/${orderId}/quote-approve" \
+			#--header "Authorization: Bearer ${apiKey}")
+			#if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+			#	execSuccess "The Quote for Order [${orderId}] has been succesfully approved"
+			#else
+			#	execFailed "There was a problem while approving your Quote for Order [${orderId}]"
+			#	echo ${response}
+			#	exit 1
+			#fi
+		;;
+
+		--decline | -d)
+			quoteDecision="quote-decline"
+			verbPresCont="declining"
+			verbPast="declined"
+			#response=$(curl --location --silent --request POST "https://${baseUrl}/api/v2/orders/${orderId}/quote-decline" \
+			#--header "Authorization: Bearer ${apiKey}")
+			#if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+			#	execSuccess "The Quote for Order [${orderId}] has been succesfully declined"
+			#else
+			#	execFailed "There was a problem while declining your Quote for Order [${orderId}]"
+			#	echo ${response}
+			#	exit 1
+			#fi
+		;;
+		
+		*)
+			execFailed "You should either decline or approve the quote [--approve/--decline]"
+			exit 1
+		;;
+	esac
+
+		
+		response=$(curl --location --silent --request POST "https://${baseUrl}/api/v2/orders/${orderId}/${quoteDecision}" \
+		--header "Authorization: Bearer ${apiKey}")
+		if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+			execSuccess "The Quote for Order [${orderId}] has been succesfully ${verbPast}"
+		else
+			execFailed "There was a problem while ${verbPresCont} your Quote for Order [${orderId}]"
+			echo ${response}
+			exit 1
+		fi
+		
+#	if [[ quoteApprovalStatus == "--approve" || quoteApprovalStatus == "-a" ]]
+#		response=$(curl --location --silent --request GET "https://${baseUrl}/api/v2/orders/${orderId}/quote-approve" \
+#		--header "Authorization: Bearer ${apiKey}")
+#	elif [[ quoteApprovalStatus == "--decline" || quoteApprovalStatus == "-d" ]]
+#		response=$(curl --location --silent --request GET "https://${baseUrl}/api/v2/orders/${orderId}/quote-decline" \
+#		--header "Authorization: Bearer ${apiKey}")
+	
+}
+
 ################
 ###			 ###
 ###   BODY   ###
@@ -474,6 +575,20 @@ do
 			exit 0
 		;;
 		
+		--request-quote | -rq)
+			requestQuote "$4"
+			exit 0
+		;;
+		
+		--get-quote-details | -gqd)
+			getQuoteDetails "$4"
+			exit 0
+		;;
+		
+		--quote-decision | -qd)
+			quoteWorkflow "$4" "$5"
+			exit 0
+		;;
 		
 		*)
 			wrongUsage "Option/command not recognized. Please use --help to see what arguments are valid."
