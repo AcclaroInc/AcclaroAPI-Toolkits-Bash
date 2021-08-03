@@ -2,7 +2,7 @@
 
 ### "Global" variables to work with
 SCRIPT=$( basename "$0" )
-VERSION="0.0.3-beta"
+VERSION="0.1-beta"
 orderId=""
 stringId=""
 fileId=""
@@ -55,13 +55,17 @@ function outputCsv()
 ##################
 # Checks that cURL is installed
 ##################
-function checkCurlInstalled()
+function checkToolsInstalled()
 {
-	output=$(curl --version)
-	if [ $? -ne 0 ]; then
-		execFailed "cURL is necessary to run this script, exiting"
-		exit 1
-	fi
+	tools=("curl" "jq")
+	for tool in ${tools[@]}
+	do
+		output=$(${tool} --version)
+		if [ $? -ne 0 ]; then
+			execFailed "[${tool}] is necessary to run this script, exiting."
+			exit 1
+		fi
+	done
 } #checkCurlInstalled
 
 ##########################################
@@ -81,8 +85,10 @@ function usage()
 		"	--help, -h	Print help."
 		"	--version, -v	Print version."
 		"	--create-order, -co <name> [string]	Create an Order, if \"string\" added as parameter, then the Order takes strings rather than files."
+		"	--add-target-lang, -atl <orderID> <targetLang>	Adds a target language to an Order."
 		"	--post-string, -ps <orderID> <sourceString> <sourceLang> <targertLang>	Post a string."
-		"	--send-file, -sf <orderID> <sourceLang> <targertLang> <Path_to_file>	Sends a source file."
+		"	--send-file, -sf <orderID> <sourceLang> <targertLang> <path_to_file>	Sends a source file."
+		"	--send-reference-file, -srf <orderID> <sourceLang> <targertLang> <path_to_reference_file>	Sends a reference file (e.g. a styleguide) for a particular language."
 		"	--get-order-details, -god <orderID>	Gets Order details."
 		"	--get-all-order-details, -gaod <orderID>	Gets All Order details."
 		"	--set-order-comment, -soc <orderID> <comment>	Sets a Comment for the Order"
@@ -205,7 +211,7 @@ function sendFile ()
 	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		#getting the file ID using bash methods only (python strongly recommended for JSON parsing)
 		fileId=$(grep -oE '"fileid":[0-9]*' <<< "${response}" | sed 's@"fileid":@@')
-		execSuccess "Your string has been posted to Order [${orderId}] and has File ID: [${fileId}]" 
+		execSuccess "Your file has been posted to Order [${orderId}] and has File ID: [${fileId}]" 
 	else
 		execFailed "There was a problem while sending your file, please see bellow the response:"
 		echo ${response}
@@ -423,7 +429,6 @@ function getQuoteDetails()
 	fi
 }
 
-
 function quoteWorkflow()
 {
 	orderId=$1
@@ -464,9 +469,9 @@ function quoteWorkflow()
 			execFailed "You should either decline or approve the quote [--approve/--decline]"
 			exit 1
 		;;
+
 	esac
 
-		
 		response=$(curl --location --silent --request POST "https://${baseUrl}/api/v2/orders/${orderId}/${quoteDecision}" \
 		--header "Authorization: Bearer ${apiKey}")
 		if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
@@ -485,6 +490,57 @@ function quoteWorkflow()
 #		--header "Authorization: Bearer ${apiKey}")
 	
 }
+
+function addTargetToOrder()
+{
+	orderId=$1
+	checkNotEmpty "${orderId}" "<OrderID>"
+	targetLang=$2
+	checkNotEmpty "${targetLang}" "<targetLang>"
+	response=$(curl --location --silent --request POST "https://${baseUrl}/api/v2/orders/${orderId}/language" \
+	--header "Authorization: Bearer ${apiKey}" \
+	--data-urlencode "targetlang=${targetLang}")
+	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+		execSuccess "The following target language: [${targetLang}] has been succesfully added to the Order [${orderId}]"
+	else
+		execFailed "There was a problem while adding the target lang [${targetLang}] to Order [${orderId}]"
+		echo ${response}
+		exit 1
+	fi
+}
+
+#function addSourceAndTargetToOrder()
+#{
+#	#stuff
+#}
+
+function sendReferenceFile()
+{
+	orderId=$1
+	checkNotEmpty "${orderId}" "<OrderID>"
+	sourceLang=$2
+	checkNotEmpty "${sourceLang}" "<sourceLang>"
+	targetLang=$3
+	checkNotEmpty "${targetLang}" "<targertLang>"
+	pathToReferenceFile=$4
+	checkNotEmpty "${pathToReferenceFile}" "<path_to_reference_file>"
+	response=$(curl --silent --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/reference-file" \
+	--header 'Content-Type: multipart/form-data' \
+	--header "Authorization: Bearer ${apiKey}" \
+	--form "sourcelang=\"${sourceLang}\"" \
+	--form "targetlang=\"${targetLang}\"" \
+	--form "file=@\"${pathToReferenceFile}\"")
+	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+		#getting the file ID using bash methods only (python strongly recommended for JSON parsing)
+		fileId=$(grep -oE '"fileid":[0-9]*' <<< "${response}" | sed 's@"fileid":@@')
+		execSuccess "Your reference file has been posted to Order [${orderId}] for the following target lang(s): [${targetLang}]" 
+	else
+		execFailed "There was a problem while sending your reference file, please see bellow the response:"
+		echo ${response}
+		exit 1
+	fi
+}
+
 
 ################
 ###			 ###
@@ -513,7 +569,7 @@ do
 		
 	esac
 
-	checkCurlInstalled
+	checkToolsInstalled
 	baseUrl="$1"
 	checkNotEmpty "${baseUrl}" "base URL"
 	apiKey="$2"
@@ -532,6 +588,11 @@ do
 		
 		--send-file | -sf)
 			sendFile "$4" "$5" "$6" "$7"
+			exit 0
+		;;		
+		
+		--send-reference-file | -srf)
+			sendReferenceFile "$4" "$5" "$6" "$7"
 			exit 0
 		;;
 		
@@ -587,6 +648,11 @@ do
 		
 		--quote-decision | -qd)
 			quoteWorkflow "$4" "$5"
+			exit 0
+		;;
+		
+		--add-target-lang | -atl)
+			addTargetToOrder "$4" "$5"
 			exit 0
 		;;
 		
