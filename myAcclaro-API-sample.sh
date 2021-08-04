@@ -1,9 +1,14 @@
 #!/bin/bash
-
 ### "Global" variables to work with
 SCRIPT=$( basename "$0" )
 VERSION="0.4-beta"
 consoleActivated=false
+bind '"\e[A": history-search-backward'
+bind '"\e[B": history-search-forward'
+history -r script_history
+set -o vi
+history -w script_history
+
 
 #######################################
 # Function to handle success messages #
@@ -183,11 +188,13 @@ function console()
 	unset line #clean before using, for sanity purposes! :)
 	if [[ -z ${baseUrl} || -z ${apiKey} ]]; then
 		echo -e -n "\e[33mMyAcclaro@DISCONNECTED\e[39m> "
-		read input
+		read -e input
+		history -s "${input}"
 		eval line=(${input})
 	else
 		echo -e -n "\e[92mMyAcclaro@${baseUrl}\e[39m> "
-		read input
+		read -e input
+		history -s "${input}"
 		eval line=(${input})
 	fi
 }
@@ -196,12 +203,14 @@ function logIn()
 {
 	if [[ -z ${baseUrl} || -z ${apiKey} ]]; then
 		echo -e -n "Please enter the MyAcclaro domain: "
-		read -a domain
+		read -e -a domain
 		
 		echo -e -n "Please paste your API key here: "
-		read -a key
-		response=$(curl --location --silent --request GET "https://${domain}/api/v2/info/account" \
-		--header "Authorization: Bearer ${key}")
+		read -e -a key
+		response=$(
+			curl --location --silent --request GET "https://${domain}/api/v2/info/account" \
+			--header "Authorization: Bearer ${key}" \
+		)
 		if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 			firstname=$(echo ${response} | jq -r '(.data.firstname)')
 			lastname=$(echo ${response} | jq -r '(.data.lastname)')
@@ -256,12 +265,13 @@ function createAnOrder()
 		processType=""
 	fi
 	checkNotEmpty "${orderName}" "<name>"
-	response=$(curl --silent --location --request POST "https://${baseUrl}/api/v2/orders" \
-			--header 'Content-Type: multipart/form-data' \
-			--header "Authorization: Bearer ${apiKey}" \
-			--form "name=\"${orderName}\"" \
-			${processType}
-			)
+	response=$(
+		curl --silent --location --request POST "https://${baseUrl}/api/v2/orders" \
+		--header 'Content-Type: multipart/form-data' \
+		--header "Authorization: Bearer ${apiKey}" \
+		--form "name=\"${orderName}\"" \
+		${processType} \
+	)
 	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		#getting the Order ID using bash methods only (python strongly recommended for JSON parsing)
 		orderId=$(grep -oE '"orderid":[0-9]*' <<< "${response}" | sed 's@"orderid":@@')
@@ -287,10 +297,12 @@ function postString ()
 	checkNotEmpty "${sourceLang}" "<sourceLang>"
 	targertLang=$4
 	checkNotEmpty "${targertLang}" "<targertLang>"
-	response=$(curl --silent --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/strings" \
-			--header "Authorization: Bearer ${apiKey}" \
-			--header 'Content-Type: application/json' \
-			--data-raw "{\"strings\":[{\"value\":\"${sourceString}\",\"target_lang\":[\"${targertLang}\"],\"source_lang\": \"${sourceLang}\"}]}")
+	response=$(
+		curl --silent --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/strings" \
+		--header "Authorization: Bearer ${apiKey}" \
+		--header 'Content-Type: application/json' \
+		--data-raw "{\"strings\":[{\"value\":\"${sourceString}\",\"target_lang\":[\"${targertLang}\"],\"source_lang\": \"${sourceLang}\"}]}" \
+	)
 	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		#getting the string ID using bash methods only (python strongly recommended for JSON parsing)
 		stringId=$(grep -oE '"string_id":[0-9]*' <<< "${response}" | sed 's@"string_id":@@')
@@ -313,18 +325,20 @@ function sendFile ()
 	checkNotEmpty "${targetLang}" "<targertLang>"
 	pathToSourceFile=$4
 	checkNotEmpty "${pathToSourceFile}" "<path_to_file>"
-	response=$(curl --silent --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/files" \
+	response=$(
+		curl --silent --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/files" \
 		--header 'Content-Type: multipart/form-data' \
 		--header "Authorization: Bearer ${apiKey}" \
 		--form "sourcelang=\"${sourceLang}\"" \
 		--form "targetlang=\"${targetLang}\"" \
-		--form "file=@\"${pathToSourceFile}\"")
+		--form "file=@\"${pathToSourceFile}\"" \
+	)
 	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		#getting the file ID using bash methods only (python strongly recommended for JSON parsing)
 		fileId=$(grep -oE '"fileid":[0-9]*' <<< "${response}" | sed 's@"fileid":@@')
-		execSuccess "Your file has been posted to Order [${orderId}] and has File ID: [${fileId}]" 
+		execSuccess "Your source file has been posted to Order [${orderId}] and has File ID: [${fileId}]" 
 	else
-		execFailed "There was a problem while sending your file, please see bellow the response:"
+		execFailed "There was a problem while sending your source file, please see bellow the response:"
 		echo ${response} | jq
 		handleExit 1
 	fi
@@ -335,8 +349,10 @@ function getOrderDetails ()
 {
 	orderId=$1
 	checkNotEmpty "${orderId}" "<OrderID>"
-	response=$(curl --silent --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}"  \
-		--header "Authorization: Bearer ${apiKey}")
+	response=$(
+		curl --silent --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}"  \
+		--header "Authorization: Bearer ${apiKey}" \
+	)
 	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		#getting the attributes using bash methods only (python strongly recommended for JSON parsing)
 		orderName=$(grep -oE '"name":"[^"]*"' <<< "${response}" | sed 's@"name":@@')
@@ -355,8 +371,10 @@ function getOrderDetails ()
 function getAllOrderDetails ()
 {
 	outputCsv $1
-	response=$(curl --silent --location --request GET "https://${baseUrl}/api/v2/orders"  \
-		--header "Authorization: Bearer ${apiKey}")
+	response=$(
+		curl --silent --location --request GET "https://${baseUrl}/api/v2/orders"  \
+		--header "Authorization: Bearer ${apiKey}" \
+	)
 	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		if [ "${csvOutput}" = true ]; then
 			echo ${response} | jq -r '.data[] | [.orderid, .name, .status, .process_type, .user.email, .duedate] | @csv' | awk -v FS="\t" 'BEGIN{print "\"Order ID\",\"Order Name\",\"Status\",\"Type\",\"Creator\",\"Due Date\""}{printf "%s\t%s\t%s%s\t%s\t%s\t%s",$1,$2,$3,$4,$5,$6,ORS}'
@@ -375,8 +393,10 @@ function submitOrder ()
 {
 	orderId=$1
 	checkNotEmpty "${orderId}" "<OrderID>"
-	response=$(curl --silent --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/submit"  \
-		--header "Authorization: Bearer ${apiKey}")
+	response=$(
+		curl --silent --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/submit"  \
+		--header "Authorization: Bearer ${apiKey}" \
+	)
 	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		execSuccess "Your Order [${orderId}] has beeen submitted" 
 	else
@@ -392,8 +412,10 @@ function getStringInfo ()
 	checkNotEmpty "${orderId}" "<OrderID>"
 	stringId=$2
 	checkNotEmpty "${stringId}" "<stringID>"
-	response=$(curl --silent --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}/strings/${stringId}"  \
-		--header "Authorization: Bearer ${apiKey}")
+	response=$(
+		curl --silent --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}/strings/${stringId}"  \
+		--header "Authorization: Bearer ${apiKey}" \
+	)
 	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		#getting the attributes using bash methods only (python strongly recommended for JSON parsing)
 		execSuccess " has the following strings submitted" 
@@ -421,8 +443,10 @@ function getFile ()
 	checkNotEmpty "${fileId}" "<FileID>"
 	#set a filename if needed, you can also use the "fileName" variable form the function "getFileInfo"
 	fileName="$(pwd)/output.myacclaro"
-		response=$(curl --silent --location --request GET -w "%{http_code}" "https://${baseUrl}/api/v2/orders/${orderId}/files/${fileId}" -o ${fileName}  \
-		--header "Authorization: Bearer ${apiKey}")
+		response=$(
+			curl --silent --location --request GET -w "%{http_code}" "https://${baseUrl}/api/v2/orders/${orderId}/files/${fileId}" -o ${fileName}  \
+			--header "Authorization: Bearer ${apiKey}" \
+		)
 	if [ ${response} -eq 200 ]; then
 		writeFileTest=$(echo ${fileName} >${fileName}.test && rm ${fileName}.test)
 		if [ $? -eq 0 ]; then
@@ -444,8 +468,10 @@ function getFileInfo ()
 	checkNotEmpty "${orderId}" "<OrderID>"
 	fileId=$2
 	checkNotEmpty "${fileId}" "<FileID>"
-	response=$(curl --silent --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}/files/${fileId}/status"  \
-		--header "Authorization: Bearer ${apiKey}")
+	response=$(
+		curl --silent --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}/files/${fileId}/status"  \
+		--header "Authorization: Bearer ${apiKey}" \
+	)
 	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		#getting the attributes using bash methods only (python strongly recommended for JSON parsing)
 		fileName=$(grep -oE '"filename":"[^"]*"' <<< "${response}" | sed 's@"filename":@@')
@@ -468,8 +494,10 @@ function getComments ()
 	orderId=$1
 	checkNotEmpty "${orderId}" "<OrderID>"
 	outputCsv $2
-	response=$(curl --location --silent --request GET "https://${baseUrl}/api/v2/orders/${orderId}/comments" \
-	--header "Authorization: Bearer ${apiKey}")
+	response=$(
+		curl --location --silent --request GET "https://${baseUrl}/api/v2/orders/${orderId}/comments" \
+		--header "Authorization: Bearer ${apiKey}" \
+	)
 	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		if [ "${csvOutput}" = true ]; then
 			echo ${response} | jq -r '.data[] | [.author, .timestamp, .comment] | @csv' | awk -v FS="\t" 'BEGIN{print "\"Author\",\"Creation Date\",\"Comment\""}{printf "%s\t%s\t%s%s",$1,$2,$3,ORS}'	
@@ -490,9 +518,11 @@ function setComment ()
 	checkNotEmpty "${orderId}" "<OrderID>"
 	commentLine=$2
 	checkNotEmpty "${commentLine}" "<Comment>"
-	response=$(curl --location --silent --request POST "https://${baseUrl}/api/v2/orders/${orderId}/comment" \
-	--header "Authorization: Bearer ${apiKey}" \
-	--data-urlencode "comment=${commentLine}")
+	response=$(
+		curl --location --silent --request POST "https://${baseUrl}/api/v2/orders/${orderId}/comment" \
+		--header "Authorization: Bearer ${apiKey}" \
+		--data-urlencode "comment=${commentLine}" \
+	)
 	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		execSuccess "Your Order [${orderId}] has been added the following comment:"
 		echo "	****** Comment Start ******"
@@ -509,8 +539,10 @@ function requestQuote()
 {
 	orderId=$1
 	checkNotEmpty "${orderId}" "<OrderID>"
-	response=$(curl --location --silent --request GET "https://${baseUrl}/api/v2/orders/${orderId}/quote" \
-	--header "Authorization: Bearer ${apiKey}")
+	response=$(
+		curl --location --silent --request GET "https://${baseUrl}/api/v2/orders/${orderId}/quote" \
+		--header "Authorization: Bearer ${apiKey}" \
+	)
 	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		execSuccess "Quote succesfully requested for Order [${orderId}]" 
 	else
@@ -524,8 +556,10 @@ function getQuoteDetails()
 {
 	orderId=$1
 	checkNotEmpty "${orderId}" "<OrderID>"
-	response=$(curl --location --silent --request GET "https://${baseUrl}/api/v2/orders/${orderId}/quote-details" \
-	--header "Authorization: Bearer ${apiKey}")
+	response=$(
+		curl --location --silent --request GET "https://${baseUrl}/api/v2/orders/${orderId}/quote-details" \
+		--header "Authorization: Bearer ${apiKey}" \
+	)
 	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		totalQuote=$(echo ${response} | jq -r .data.total)
 		#arrayLength=$(echo ${response} | jq -r '(.data.lines | length)')
@@ -550,30 +584,12 @@ function quoteWorkflow()
 			quoteDecision="quote-approve"
 			verbPresCont="approving"
 			verbPast="approved"
-			#response=$(curl --location --silent --request POST "https://${baseUrl}/api/v2/orders/${orderId}/quote-approve" \
-			#--header "Authorization: Bearer ${apiKey}")
-			#if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
-			#	execSuccess "The Quote for Order [${orderId}] has been succesfully approved"
-			#else
-			#	execFailed "There was a problem while approving your Quote for Order [${orderId}]"
-			#	echo ${response} | jq
-			#	handleExit 1
-			#fi
 		;;
 
 		--decline | -d)
 			quoteDecision="quote-decline"
 			verbPresCont="declining"
 			verbPast="declined"
-			#response=$(curl --location --silent --request POST "https://${baseUrl}/api/v2/orders/${orderId}/quote-decline" \
-			#--header "Authorization: Bearer ${apiKey}")
-			#if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
-			#	execSuccess "The Quote for Order [${orderId}] has been succesfully declined"
-			#else
-			#	execFailed "There was a problem while declining your Quote for Order [${orderId}]"
-			#	echo ${response} | jq
-			#	handleExit 1
-			#fi
 		;;
 		
 		*)
@@ -583,23 +599,17 @@ function quoteWorkflow()
 
 	esac
 
-		response=$(curl --location --silent --request POST "https://${baseUrl}/api/v2/orders/${orderId}/${quoteDecision}" \
-		--header "Authorization: Bearer ${apiKey}")
+		response=$(
+			curl --location --silent --request POST "https://${baseUrl}/api/v2/orders/${orderId}/${quoteDecision}" \
+			--header "Authorization: Bearer ${apiKey}" \
+		)
 		if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 			execSuccess "The Quote for Order [${orderId}] has been succesfully ${verbPast}"
 		else
 			execFailed "There was a problem while ${verbPresCont} your Quote for Order [${orderId}]"
 			echo ${response} | jq
 			handleExit 1
-		fi
-		
-#	if [[ quoteApprovalStatus == "--approve" || quoteApprovalStatus == "-a" ]]
-#		response=$(curl --location --silent --request GET "https://${baseUrl}/api/v2/orders/${orderId}/quote-approve" \
-#		--header "Authorization: Bearer ${apiKey}")
-#	elif [[ quoteApprovalStatus == "--decline" || quoteApprovalStatus == "-d" ]]
-#		response=$(curl --location --silent --request GET "https://${baseUrl}/api/v2/orders/${orderId}/quote-decline" \
-#		--header "Authorization: Bearer ${apiKey}")
-	
+		fi	
 }
 
 function addTargetToOrder()
@@ -608,9 +618,11 @@ function addTargetToOrder()
 	checkNotEmpty "${orderId}" "<OrderID>"
 	targetLang=$2
 	checkNotEmpty "${targetLang}" "<targetLang>"
-	response=$(curl --location --silent --request POST "https://${baseUrl}/api/v2/orders/${orderId}/language" \
-	--header "Authorization: Bearer ${apiKey}" \
-	--data-urlencode "targetlang=${targetLang}")
+	response=$(
+		curl --location --silent --request POST "https://${baseUrl}/api/v2/orders/${orderId}/language" \
+		--header "Authorization: Bearer ${apiKey}" \
+		--data-urlencode "targetlang=${targetLang}" \
+	)
 	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		execSuccess "The following target language: [${targetLang}] has been succesfully added to the Order [${orderId}]"
 	else
@@ -635,12 +647,14 @@ function sendReferenceFile()
 	checkNotEmpty "${targetLang}" "<targertLang>"
 	pathToReferenceFile=$4
 	checkNotEmpty "${pathToReferenceFile}" "<path_to_reference_file>"
-	response=$(curl --silent --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/reference-file" \
-	--header 'Content-Type: multipart/form-data' \
-	--header "Authorization: Bearer ${apiKey}" \
-	--form "sourcelang=\"${sourceLang}\"" \
-	--form "targetlang=\"${targetLang}\"" \
-	--form "file=@\"${pathToReferenceFile}\"")
+	response=$(
+		curl --silent --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/reference-file" \
+		--header 'Content-Type: multipart/form-data' \
+		--header "Authorization: Bearer ${apiKey}" \
+		--form "sourcelang=\"${sourceLang}\"" \
+		--form "targetlang=\"${targetLang}\"" \
+		--form "file=@\"${pathToReferenceFile}\"" \
+	)
 	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
 		#getting the file ID using bash methods only (python strongly recommended for JSON parsing)
 		fileId=$(grep -oE '"fileid":[0-9]*' <<< "${response}" | sed 's@"fileid":@@')
