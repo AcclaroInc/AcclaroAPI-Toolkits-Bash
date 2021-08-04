@@ -11,6 +11,8 @@ function usage()
 		"myAcclaro Console for Querying myAcclaro's REST API."
 		""
 		"Commands:"
+		"	login	Interactive login to myAcclaro API."
+		"	logout	Clears the login information."
 		"	help	Print help."
 		"	version	Print version."
 		"	create-order <name> [string]	Create an Order, if \"string\" added as parameter, then the Order takes strings rather than files."
@@ -544,6 +546,7 @@ function logOut()
 
 function headerGreeting()
 {
+	versionDisp
 	local txt=(
 		""                                             
 		"                                   _                  "
@@ -555,9 +558,11 @@ function headerGreeting()
 		"             __/ |                                    "
 		"            |___/                                     "
 		""
+		""
+		"Type 'help' to see the available commands."
+		""
 	)
 	printf "%s\n" "${txt[@]}"
-	versionDisp
 }
 
 ################
