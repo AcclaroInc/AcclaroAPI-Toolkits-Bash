@@ -4,13 +4,8 @@ SCRIPT=$( basename "$0" )
 VERSION="0.4-beta"
 consoleActivated=false
 
-### Allow History with arrows
-# bind keys to hisotry search
-#bind '"\e[A": history-search-backward'
-#bind '"\e[B": history-search-forward'
-# set history
+### Allow History
 history -r script_history
-set -o emacs  #set vi as editing style
 history -w script_history
 
 
@@ -147,7 +142,7 @@ function usageConsole()
 		""
 	)
 	printf "%s\n" "${txt[@]}"
-} #usage
+} #usageConsole
 
 ########################################
 # Message to display when wrong usage. #
@@ -187,6 +182,9 @@ function versionDisp()
 	echo "MyAcclaro Console ${VERSION}"
 } #versionDisp
 
+###################
+# Console Handler #
+###################
 function console()
 {
 	unset line #clean before using, for sanity purposes! :)
@@ -257,6 +255,144 @@ function headerGreeting()
 		""
 	)
 	printf "%s\n" "${txt[@]}"
+}
+
+function handleExit()
+{
+	if [[ "${consoleActivated}" != true ]]; then
+		exit $1
+	else
+		echo $1 >/dev/null #just do something xD
+	fi
+}
+
+function consoleMode()
+{
+	consoleActivated=true
+	headerGreeting
+	console
+	while [ "${line[0]}" != "exit" ]
+	do 
+		case "${line[0]}" in
+		
+			ls)
+				"${line[@]}"
+			;;
+			cd)
+				"${line[0]}" "${line[1]}"
+			;;
+			
+			pwd)
+				"${line[@]}"
+			;;
+			
+			grep)
+				"${line[@]}"
+			;;
+			
+			find)
+				"${line[@]}"
+			;;
+			
+			cat)
+				"${line[@]}"
+			;;
+			
+			less)
+				"${line[@]}"
+			;;
+			
+			help)
+				usageConsole
+			;;
+	
+			version)
+				versionDisp
+			;;
+		
+			create-order)
+				createAnOrder "${line[1]}"
+			;;
+			
+			post-sting)
+				postString "${line[1]}" "${line[2]}" "${line[3]}" "${line[4]}"
+			;;
+			
+			send-file)
+				sendFile "${line[1]}" "${line[2]}" "${line[3]}" "${line[4]}"
+			;;		
+			
+			send-reference-file)
+				sendReferenceFile "${line[1]}" "${line[2]}" "${line[3]}" "${line[4]}"
+			;;
+			
+			get-order-details)
+				getOrderDetails "${line[1]}"
+			;;
+			
+			get-all-order-details)
+				getAllOrderDetails
+			;;
+			
+			submit-order)
+				submitOrder "${line[1]}"
+			;;
+			
+			get-string-info)
+				getStringInfo "${line[1]}" "${line[2]}"
+			;;
+			
+			get-file)
+				getFile "${line[1]}" "${line[2]}"
+			;;
+			
+			get-file-info)
+				getFileInfo "${line[1]}" "${line[2]}"
+			;;
+			
+			get-order-comments)
+				getComments "${line[1]}" "${line[2]}"
+			;;
+			
+			set-order-comment)
+				setComment "${line[1]}" "${line[2]}"
+			;;
+			
+			request-quote)
+				requestQuote "${line[1]}"
+			;;
+			
+			get-quote-details)
+				getQuoteDetails "${line[1]}"
+			;;
+			
+			quote-decision)
+				quoteWorkflow "${line[1]}" "${line[2]}"
+			;;
+			
+			add-target-lang)
+				addTargetToOrder "${line[1]}" "${line[2]}"
+			;;
+			
+			login)
+				logIn
+			;;
+			
+			logout)
+				logOut
+			;;
+			
+			"")
+				#do nothing
+			;;
+			
+			*)
+				wrongUsageConsole
+			;;
+		esac
+		console
+	done
+	exit 0
 }
 
 function createAnOrder()
@@ -670,144 +806,6 @@ function sendReferenceFile()
 	fi
 }
 
-function handleExit()
-{
-	if [[ "${consoleActivated}" != true ]]; then
-		exit $1
-	else
-		echo $1 >/dev/null #just do something xD
-	fi
-}
-
-function consoleMode()
-{
-	consoleActivated=true
-	headerGreeting
-	console
-	while [ "${line[0]}" != "exit" ]
-	do 
-		case "${line[0]}" in
-		
-			ls)
-				"${line[@]}"
-			;;
-			cd)
-				"${line[0]}" "${line[1]}"
-			;;
-			
-			pwd)
-				"${line[@]}"
-			;;
-			
-			grep)
-				"${line[@]}"
-			;;
-			
-			find)
-				"${line[@]}"
-			;;
-			
-			cat)
-				"${line[@]}"
-			;;
-			
-			less)
-				"${line[@]}"
-			;;
-			
-			help)
-				usageConsole
-			;;
-	
-			version)
-				versionDisp
-			;;
-		
-			create-order)
-				createAnOrder "${line[1]}"
-			;;
-			
-			post-sting)
-				postString "${line[1]}" "${line[2]}" "${line[3]}" "${line[4]}"
-			;;
-			
-			send-file)
-				sendFile "${line[1]}" "${line[2]}" "${line[3]}" "${line[4]}"
-			;;		
-			
-			send-reference-file)
-				sendReferenceFile "${line[1]}" "${line[2]}" "${line[3]}" "${line[4]}"
-			;;
-			
-			get-order-details)
-				getOrderDetails "${line[1]}"
-			;;
-			
-			get-all-order-details)
-				getAllOrderDetails
-			;;
-			
-			submit-order)
-				submitOrder "${line[1]}"
-			;;
-			
-			get-string-info)
-				getStringInfo "${line[1]}" "${line[2]}"
-			;;
-			
-			get-file)
-				getFile "${line[1]}" "${line[2]}"
-			;;
-			
-			get-file-info)
-				getFileInfo "${line[1]}" "${line[2]}"
-			;;
-			
-			get-order-comments)
-				getComments "${line[1]}" "${line[2]}"
-			;;
-			
-			set-order-comment)
-				setComment "${line[1]}" "${line[2]}"
-			;;
-			
-			request-quote)
-				requestQuote "${line[1]}"
-			;;
-			
-			get-quote-details)
-				getQuoteDetails "${line[1]}"
-			;;
-			
-			quote-decision)
-				quoteWorkflow "${line[1]}" "${line[2]}"
-			;;
-			
-			add-target-lang)
-				addTargetToOrder "${line[1]}" "${line[2]}"
-			;;
-			
-			login)
-				logIn
-			;;
-			
-			logout)
-				logOut
-			;;
-			
-			"")
-				#do nothing
-			;;
-			
-			*)
-				wrongUsageConsole
-			;;
-		esac
-		console
-	done
-	exit 0
-}
-
 
 ################
 ###			 ###
@@ -819,6 +817,7 @@ if [[ $# -eq 0 ]] ; then
 	usage
 	exit 1
 fi
+
 #read arguments and execute accordingly
 while (( $# ))
 do
