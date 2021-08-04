@@ -2,7 +2,7 @@
 
 ### "Global" variables to work with
 SCRIPT=$( basename "$0" )
-VERSION="0.2-beta"
+VERSION="0.4-beta"
 consoleActivated=false
 
 #######################################
@@ -12,7 +12,7 @@ consoleActivated=false
 #######################################
 function execSuccess()
 {
-	echo "$(date +%F\ %T) :: [SUCCESS] - $1"
+	echo -e "$(date +%F\ %T) :: [\e[92mSUCCESS\e[39m] - $1"
 } #execSuccess
 
 ######################################
@@ -22,8 +22,7 @@ function execSuccess()
 ######################################
 function execFailed()
 {
-	echo "$(date +%F\ %T) :: [FAIL] - $1"
-	handleExit 1
+	echo -e "$(date +%F\ %T) :: [\e[31mFAIL\e[39m] - $1"
 } #execFailed
 
 ##################
@@ -210,17 +209,8 @@ function logIn()
 			apiKey=${key}
 		else
 			execFailed "the domain or the API key are wrong, please check output"
-			echo ${response}
+			echo ${response} | jq
 		fi
-#		read -p "Shall I set these as environmental variables? [Y/n] " -n 1 -r
-#		if [[ $REPLY =~ ^[Yy]$ ]]; then
-#			set -a
-#			baseUrl=${domain}
-#			apiKey=${key}
-#			echo ""
-#			echo "Your API key and your domain have been set as environmental variables."
-#			set +a
-#		fi
 	else
 		echo "you are already logged in into [${baseUrl}] using the following API key:"
 		echo "[${apiKey}]"
@@ -231,7 +221,7 @@ function logOut()
 {
 	baseUrl=""
 	apiKey=""
-	echo "You have been successfully logged out."
+	execSuccess "You have been successfully logged out."
 }
 
 function headerGreeting()
@@ -281,7 +271,7 @@ function createAnOrder()
 			fi
 	else
 		execFailed "There was a problem while creating your Order, please see the response below:"
-		echo ${response}
+		echo ${response} | jq
 	fi
 	resultOrderId=${orderId}
 } #createAnOrder
@@ -306,7 +296,7 @@ function postString ()
 		execSuccess "Your string has been posted to Order [${orderId}] and has String ID: [${stringId}]" 
 	else
 		execFailed "There was a problem while posting your string, please see bellow the response:"
-		echo ${response}
+		echo ${response} | jq
 		handleExit 1
 	fi
 	resultStringId=${stringId}
@@ -334,7 +324,7 @@ function sendFile ()
 		execSuccess "Your file has been posted to Order [${orderId}] and has File ID: [${fileId}]" 
 	else
 		execFailed "There was a problem while sending your file, please see bellow the response:"
-		echo ${response}
+		echo ${response} | jq
 		handleExit 1
 	fi
 	resultFileId=${fileId}
@@ -356,7 +346,7 @@ function getOrderDetails ()
 		printf "\n\t* Order ID: ${orderId}\n\t* Order Name: ${orderName}\n\t* Status: ${orderStatus}\n\t* Process Type: ${processType}\n\t* Due date: ${dueDate}\n\n"
 	else
 		execFailed "There was a problem while getting your Order, please see the response below:"
-		echo ${response}
+		echo ${response} | jq
 		handleExit 1
 	fi
 } #getOrderDetails
@@ -375,7 +365,7 @@ function getAllOrderDetails ()
 		fi
 	else
 		execFailed "There was a problem while getting your Order, please see the response below:"
-		echo ${response}
+		echo ${response} | jq
 		handleExit 1
 	fi
 } #getOrderDetails
@@ -390,7 +380,7 @@ function submitOrder ()
 		execSuccess "Your Order [${orderId}] has beeen submitted" 
 	else
 		execFailed "There was a problem while submitting your Order, please see the response below:"
-		echo ${response}
+		echo ${response} | jq
 		handleExit 1
 	fi
 } #submitOrder
@@ -417,7 +407,7 @@ function getStringInfo ()
 		fi
 	else
 		execFailed "There was a problem while getting your string, please see the response below:"
-		echo ${response}
+		echo ${response} | jq
 		handleExit 1
 	fi
 } #getStringInfo
@@ -467,7 +457,7 @@ function getFileInfo ()
 		fi
 	else
 		execFailed "There was a problem while getting your file info, please see the response below:"
-		echo ${response}
+		echo ${response} | jq
 		handleExit 1
 	fi
 } #getFileInfo
@@ -488,7 +478,7 @@ function getComments ()
 		fi
 	else
 		execFailed "There was a problem while getting your comments"
-		echo ${response}
+		echo ${response} | jq
 		handleExit 1
 	fi
 } #getComments	
@@ -509,7 +499,7 @@ function setComment ()
 		echo "	****** Comment End ******"
 	else
 		execFailed "There was a problem while posting your comment"
-		echo ${response}
+		echo ${response} | jq
 		handleExit 1
 	fi
 } #setComment
@@ -524,7 +514,7 @@ function requestQuote()
 		execSuccess "Quote succesfully requested for Order [${orderId}]" 
 	else
 		execFailed "There was a problem while requestiong your Quote for Order [${orderId}]"
-		echo ${response}
+		echo ${response} | jq
 		handleExit 1
 	fi
 }
@@ -544,7 +534,7 @@ function getQuoteDetails()
 		echo "** TOTAL: \$${totalQuote}" 
 	else
 		execFailed "There was a problem while getting your Quote"
-		echo ${response}
+		echo ${response} | jq
 		handleExit 1
 	fi
 }
@@ -565,7 +555,7 @@ function quoteWorkflow()
 			#	execSuccess "The Quote for Order [${orderId}] has been succesfully approved"
 			#else
 			#	execFailed "There was a problem while approving your Quote for Order [${orderId}]"
-			#	echo ${response}
+			#	echo ${response} | jq
 			#	handleExit 1
 			#fi
 		;;
@@ -580,7 +570,7 @@ function quoteWorkflow()
 			#	execSuccess "The Quote for Order [${orderId}] has been succesfully declined"
 			#else
 			#	execFailed "There was a problem while declining your Quote for Order [${orderId}]"
-			#	echo ${response}
+			#	echo ${response} | jq
 			#	handleExit 1
 			#fi
 		;;
@@ -598,7 +588,7 @@ function quoteWorkflow()
 			execSuccess "The Quote for Order [${orderId}] has been succesfully ${verbPast}"
 		else
 			execFailed "There was a problem while ${verbPresCont} your Quote for Order [${orderId}]"
-			echo ${response}
+			echo ${response} | jq
 			handleExit 1
 		fi
 		
@@ -624,7 +614,7 @@ function addTargetToOrder()
 		execSuccess "The following target language: [${targetLang}] has been succesfully added to the Order [${orderId}]"
 	else
 		execFailed "There was a problem while adding the target lang [${targetLang}] to Order [${orderId}]"
-		echo ${response}
+		echo ${response} | jq
 		handleExit 1
 	fi
 }
@@ -656,7 +646,7 @@ function sendReferenceFile()
 		execSuccess "Your reference file has been posted to Order [${orderId}] for the following target lang(s): [${targetLang}]" 
 	else
 		execFailed "There was a problem while sending your reference file, please see bellow the response:"
-		echo ${response}
+		echo ${response} | jq
 		handleExit 1
 	fi
 }
