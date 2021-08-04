@@ -1,4 +1,5 @@
 #!/bin/bash
+
 ### "Global" variables to work with
 SCRIPT=$( basename "$0" )
 VERSION="0.4-beta"
@@ -171,7 +172,7 @@ function wrongUsage()
 
 function wrongUsageConsole()
 {
-	echo "command '${line}' not found"
+	echo "command '${line[0]}' not found"
 } #wrongUsage
 
 ###################################
@@ -186,10 +187,10 @@ function version
 	printf "%s\n" "${txt[@]}"
 } #version
 
-function versionDisp()
+function versionConsole()
 {
 	echo "MyAcclaro Console ${VERSION}"
-} #versionDisp
+} #versionConsole
 
 ###################
 # Console Handler #
@@ -198,13 +199,13 @@ function console()
 {
 	unset line #clean before using, for sanity purposes! :)
 	if [[ -z ${baseUrl} || -z ${apiKey} ]]; then
-		echo -e -n "\e[33mMyAcclaro@DISCONNECTED\e[39m> "
-		read -e input
+		echoConsole=$(echo -e -n "\e[33mMyAcclaro@DISCONNECTED\e[39m> ")
+		read -e -p "${echoConsole}" input
 		history -s "${input}"
 		eval line=(${input})
 	else
-		echo -e -n "\e[92mMyAcclaro@${baseUrl}\e[39m> "
-		read -e input
+		echoConsole=$(echo -e -n "\e[92mMyAcclaro@${baseUrl}\e[39m> ")
+		read -e -p "${echoConsole}" input
 		history -s "${input}"
 		eval line=(${input})
 	fi
@@ -247,7 +248,7 @@ function logOut()
 
 function headerGreeting()
 {
-	versionDisp
+	versionConsole
 	local txt=(
 		""                                             
 		"                                   _                  "
@@ -316,7 +317,7 @@ function consoleMode()
 			;;
 	
 			version)
-				versionDisp
+				versionConsole
 			;;
 		
 			create-order)
