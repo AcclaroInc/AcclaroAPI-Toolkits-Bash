@@ -2,7 +2,13 @@
 ### "Global" variables to work with
 SCRIPT=$( basename "$0" )
 VERSION="0.4-beta"
-consoleActivated=false
+consoleActivated=false #sets the console mode off by default
+
+### Log
+logFile=/tmp/myAcclaro.log
+if [[ ! -e /tmp/myAcclaro.log ]]; then
+    touch /tmp/myAcclaro.log
+fi
 
 ### Allow History
 history -r script_history
@@ -16,7 +22,8 @@ history -w script_history
 #######################################
 function execSuccess()
 {
-	echo -e "$(date +%F\ %T) :: [\e[92mSUCCESS\e[39m] - $1"
+	echo -e "$(date +%F\ %T) :: [\e[92mSUCCESS\e[39m] - $1" | tee -a ${logFile}
+	#echo "$(date +%F\ %T) :: [SUCCESS] - $1" >>${logFile}
 } #execSuccess
 
 ######################################
@@ -26,7 +33,8 @@ function execSuccess()
 ######################################
 function execFailed()
 {
-	echo -e "$(date +%F\ %T) :: [\e[31mFAIL\e[39m] - $1"
+	echo -e "$(date +%F\ %T) :: [\e[31mFAIL\e[39m] - $1" | tee -a ${logFile}
+	#echo "$(date +%F\ %T) :: [FAIL] - $1" >>${logFile}
 } #execFailed
 
 ##################
