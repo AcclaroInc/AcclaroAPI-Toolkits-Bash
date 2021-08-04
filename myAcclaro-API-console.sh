@@ -8,10 +8,10 @@ function usage()
 {
 	local txt=(
 		""
-		"myAcclaro Console for Querying myAcclaro's REST API."
+		"MyAcclaro Console for Querying MyAcclaro's REST API."
 		""
 		"Commands:"
-		"	login	Interactive login to myAcclaro API."
+		"	login	Interactive login to MyAcclaro API."
 		"	logout	Clears the login information."
 		"	help	Print help."
 		"	version	Print version."
@@ -33,7 +33,7 @@ function usage()
 		"	quote-decision <orderID> [--approve,-a/--decline,-d]	Approves/declines the quoted price for the Order."
 		""
 		"Example:"
-		"myAcclaro>send-file 15554 en-us de-de ./mySourceFile.docx"
+		"MyAcclaro>send-file 15554 en-us de-de ./mySourceFile.docx"
 		""
 		"Shell commands:"
 		"	The following shell commands are available: ls, cd, pwd, grep, find, cat, less"
@@ -81,7 +81,7 @@ function checkNotEmpty()
 ###################################
 function versionDisp()
 {
-	echo "myAcclaro Console ${version}"
+	echo "MyAcclaro Console ${version}"
 } #version
 
 ##################
@@ -96,12 +96,13 @@ function outputCsv()
 
 function console()
 {
+	unset line #clean before using, for sanity purposes! :)
 	if [[ -z ${baseUrl} || -z ${apiKey} ]]; then
-		echo -e -n "\e[33mmyAcclaro@${baseUrl}\e[39m> "
+		echo -e -n "\e[33mMyAcclaro@${baseUrl}\e[39m> "
 		read input
 		eval line=(${input})
 	else
-		echo -e -n "\e[92mmyAcclaro@${baseUrl}\e[39m> "
+		echo -e -n "\e[92mMyAcclaro@${baseUrl}\e[39m> "
 		read input
 		eval line=(${input})
 	fi
@@ -488,13 +489,13 @@ function addTargetToOrder()
 
 function sendReferenceFile()
 {
-	orderId=${line[0]}
+	orderId=$1
 	checkNotEmpty "${orderId}" "<OrderID>"
-	sourceLang=$1
+	sourceLang=$2
 	checkNotEmpty "${sourceLang}" "<sourceLang>"
-	targetLang=$2
+	targetLang=$3
 	checkNotEmpty "${targetLang}" "<targertLang>"
-	pathToReferenceFile=$3
+	pathToReferenceFile=$4
 	checkNotEmpty "${pathToReferenceFile}" "<path_to_reference_file>"
 	response=$(curl --silent --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/reference-file" \
 	--header 'Content-Type: multipart/form-data' \
@@ -516,12 +517,23 @@ function sendReferenceFile()
 function logIn()
 {
 	if [[ -z ${baseUrl} || -z ${apiKey} ]]; then
-		echo -e -n "Please enter the myAcclaro domain: "
+		echo -e -n "Please enter the MyAcclaro domain: "
 		read -a domain
-		baseUrl=${domain}
+		
 		echo -e -n "Please paste your API key here: "
 		read -a key
-		apiKey=${key}
+		response=$(curl --location --silent --request GET "https://${domain}/api/v2/info/account" \
+		--header "Authorization: Bearer ${key}")
+		if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+			firstname=$(echo ${response} | jq -r '(.data.firstname)')
+			lastname=$(echo ${response} | jq -r '(.data.lastname)')
+			execSuccess "Welcome back ${firstname} ${lastname}!"
+			baseUrl=${domain}
+			apiKey=${key}
+		else
+			execFailed "the domain or the API key are wrong, please check output"
+			echo ${response}
+		fi
 #		read -p "Shall I set these as environmental variables? [Y/n] " -n 1 -r
 #		if [[ $REPLY =~ ^[Yy]$ ]]; then
 #			set -a
@@ -578,30 +590,30 @@ do
 	case "${line[0]}" in
 	
 		ls)
-			${line[@]}
+			"${line[@]}"
 		;;
 		cd)
-			${line[@]}
+			"${line[0]}" "${line[1]}"
 		;;
 		
 		pwd)
-			${line[@]}
+			"${line[@]}"
 		;;
 		
 		grep)
-			${line[@]}
+			"${line[@]}"
 		;;
 		
 		find)
-			${line[@]}
+			"${line[@]}"
 		;;
 		
 		cat)
-			${line[@]}
+			"${line[@]}"
 		;;
 		
 		less)
-			${line[@]}
+			"${line[@]}"
 		;;
 		
 		help)
