@@ -78,6 +78,7 @@ function usage()
 		"Options:"
 		"	--help, -h	Print help."
 		"	--version, -v	Print version."
+		"	--console, -c	Starts the interactive Console Mode"
 		"	--create-order, -co <name> [string]	Create an Order, if \"string\" added as parameter, then the Order takes strings rather than files."
 		"	--add-target-lang, -atl <orderID> <targetLang>	Adds a target language to an Order."
 		"	--post-string, -ps <orderID> <sourceString> <sourceLang> <targertLang>	Post a string."
@@ -815,7 +816,7 @@ do
 			exit 0
 		;;
 		
-		--console)
+		--console | -c)
 			consoleMode
 		;;
 		
