@@ -21,7 +21,7 @@ function usage()
 		"	send-file <orderID> <sourceLang> <targertLang> <path_to_file>	Sends a source file."
 		"	send-reference-file <orderID> <sourceLang> <targertLang> <path_to_reference_file>	Sends a reference file (e.g. a styleguide) for a particular language."
 		"	get-order-details <orderID>	Gets Order details."
-		"	get-all-order-details <orderID>	Gets All Order details."
+		"	get-all-order-details	Gets All Order details."
 		"	set-order-comment <orderID> <comment>	Sets a Comment for the Order"
 		"	get-order-comments <orderID>	Gets the Order Comments"
 		"	submit-order <orderID>	Submits the Order for preparation and then translation."
@@ -98,7 +98,7 @@ function console()
 {
 	unset line #clean before using, for sanity purposes! :)
 	if [[ -z ${baseUrl} || -z ${apiKey} ]]; then
-		echo -e -n "\e[33mMyAcclaro@${baseUrl}\e[39m> "
+		echo -e -n "\e[33mMyAcclaro@DISCONNECTED\e[39m> "
 		read input
 		eval line=(${input})
 	else

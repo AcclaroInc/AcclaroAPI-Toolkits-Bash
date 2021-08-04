@@ -2,13 +2,8 @@
 
 ### "Global" variables to work with
 SCRIPT=$( basename "$0" )
-VERSION="0.1-beta"
-orderId=""
-stringId=""
-fileId=""
-# Environment and auth - apiKey should be set as an environmental variable for security reasons
-baseUrl=""
-apiKey=""
+VERSION="0.2-beta"
+consoleActivated=false
 
 #######################################
 # Function to handle success messages #
@@ -28,7 +23,7 @@ function execSuccess()
 function execFailed()
 {
 	echo "$(date +%F\ %T) :: [FAIL] - $1"
-	exit 1
+	handleExit 1
 } #execFailed
 
 ##################
@@ -38,7 +33,7 @@ function checkNotEmpty()
 {
 	if [[ -z $1 ]]; then
 		execFailed "The following mandatory argument [$2] is empty."
-		exit 1
+		handleExit 1
 	fi
 }
 
@@ -63,7 +58,7 @@ function checkToolsInstalled()
 		output=$(${tool} --version)
 		if [ $? -ne 0 ]; then
 			execFailed "[${tool}] is necessary to run this script, exiting."
-			exit 1
+			handleExit 1
 		fi
 	done
 } #checkCurlInstalled
@@ -107,6 +102,44 @@ function usage()
 	printf "%s\n" "${txt[@]}"
 } #usage
 
+function usageConsole()
+{
+	local txt=(
+		""
+		"MyAcclaro Console for Querying MyAcclaro's REST API."
+		""
+		"Commands:"
+		"	login	Interactive login to MyAcclaro API."
+		"	logout	Clears the login information."
+		"	help	Print help."
+		"	version	Print version."
+		"	create-order <name> [string]	Create an Order, if \"string\" added as parameter, then the Order takes strings rather than files."
+		"	add-target-lang <orderID> <targetLang>	Adds a target language to an Order."
+		"	post-string <orderID> <sourceString> <sourceLang> <targertLang>	Post a string."
+		"	send-file <orderID> <sourceLang> <targertLang> <path_to_file>	Sends a source file."
+		"	send-reference-file <orderID> <sourceLang> <targertLang> <path_to_reference_file>	Sends a reference file (e.g. a styleguide) for a particular language."
+		"	get-order-details <orderID>	Gets Order details."
+		"	get-all-order-details	Gets All Order details."
+		"	set-order-comment <orderID> <comment>	Sets a Comment for the Order"
+		"	get-order-comments <orderID>	Gets the Order Comments"
+		"	submit-order <orderID>	Submits the Order for preparation and then translation."
+		"	get-string-info <orderID> <stringID>	Gets the String information and the translated string once completed."
+		"	get-file <orderID> <fileID>	Gets a file based on its ID."
+		"	get-file-info <orderID> <fileID>	Gets the information of a file based on its ID."
+		"	request-quote <orderID>	Requests a quote for the Order."
+		"	get-quote-details <orderID>	Gets the Quote status for the Order."
+		"	quote-decision <orderID> [--approve,-a/--decline,-d]	Approves/declines the quoted price for the Order."
+		""
+		"Example:"
+		"MyAcclaro> send-file 15554 en-us de-de ./mySourceFile.docx"
+		""
+		"Shell commands:"
+		"	The following shell commands are available: ls, cd, pwd, grep, find, cat, less"
+		""
+	)
+	printf "%s\n" "${txt[@]}"
+} #usage
+
 ########################################
 # Message to display when wrong usage. #
 ########################################
@@ -123,6 +156,11 @@ function wrongUsage()
 	printf "%s\n" "${txt[@]}"
 } #wrongUsage
 
+function wrongUsageConsole()
+{
+	echo "command '${line}' not found"
+} #wrongUsage
+
 ###################################
 # Message to display for version. #
 ###################################
@@ -134,6 +172,88 @@ function version
 
 	printf "%s\n" "${txt[@]}"
 } #version
+
+function versionDisp()
+{
+	echo "MyAcclaro Console ${VERSION}"
+} #versionDisp
+
+function console()
+{
+	unset line #clean before using, for sanity purposes! :)
+	if [[ -z ${baseUrl} || -z ${apiKey} ]]; then
+		echo -e -n "\e[33mMyAcclaro@DISCONNECTED\e[39m> "
+		read input
+		eval line=(${input})
+	else
+		echo -e -n "\e[92mMyAcclaro@${baseUrl}\e[39m> "
+		read input
+		eval line=(${input})
+	fi
+}
+
+function logIn()
+{
+	if [[ -z ${baseUrl} || -z ${apiKey} ]]; then
+		echo -e -n "Please enter the MyAcclaro domain: "
+		read -a domain
+		
+		echo -e -n "Please paste your API key here: "
+		read -a key
+		response=$(curl --location --silent --request GET "https://${domain}/api/v2/info/account" \
+		--header "Authorization: Bearer ${key}")
+		if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+			firstname=$(echo ${response} | jq -r '(.data.firstname)')
+			lastname=$(echo ${response} | jq -r '(.data.lastname)')
+			execSuccess "Welcome back ${firstname} ${lastname}!"
+			baseUrl=${domain}
+			apiKey=${key}
+		else
+			execFailed "the domain or the API key are wrong, please check output"
+			echo ${response}
+		fi
+#		read -p "Shall I set these as environmental variables? [Y/n] " -n 1 -r
+#		if [[ $REPLY =~ ^[Yy]$ ]]; then
+#			set -a
+#			baseUrl=${domain}
+#			apiKey=${key}
+#			echo ""
+#			echo "Your API key and your domain have been set as environmental variables."
+#			set +a
+#		fi
+	else
+		echo "you are already logged in into [${baseUrl}] using the following API key:"
+		echo "[${apiKey}]"
+	fi
+}
+
+function logOut()
+{
+	baseUrl=""
+	apiKey=""
+	echo "You have been successfully logged out."
+}
+
+function headerGreeting()
+{
+	versionDisp
+	local txt=(
+		""                                             
+		"                                   _                  "
+		"                     /\           | |                 "
+		"  _ __ ___  _   _   /  \   ___ ___| | __ _ _ __ ___   "
+		" |  _   _ \| | | | / /\ \ / __/ __| |/ _  | \__/ _ \  "
+		" | | | | | | |_| |/ ____ \ (_| (__| | (_| | | | (_) | "
+		" |_| |_| |_|\__  /_/    \_\___\___|_|\__ _|_|  \___/  "
+		"             __/ |                                    "
+		"            |___/                                     "
+		""
+		""
+		"Type 'help' to see the available commands."
+		""
+	)
+	printf "%s\n" "${txt[@]}"
+}
 
 function createAnOrder()
 {
@@ -187,7 +307,7 @@ function postString ()
 	else
 		execFailed "There was a problem while posting your string, please see bellow the response:"
 		echo ${response}
-		exit 1
+		handleExit 1
 	fi
 	resultStringId=${stringId}
 } #postString
@@ -215,7 +335,7 @@ function sendFile ()
 	else
 		execFailed "There was a problem while sending your file, please see bellow the response:"
 		echo ${response}
-		exit 1
+		handleExit 1
 	fi
 	resultFileId=${fileId}
 } #sendFile
@@ -237,7 +357,7 @@ function getOrderDetails ()
 	else
 		execFailed "There was a problem while getting your Order, please see the response below:"
 		echo ${response}
-		exit 1
+		handleExit 1
 	fi
 } #getOrderDetails
 
@@ -256,7 +376,7 @@ function getAllOrderDetails ()
 	else
 		execFailed "There was a problem while getting your Order, please see the response below:"
 		echo ${response}
-		exit 1
+		handleExit 1
 	fi
 } #getOrderDetails
 
@@ -271,7 +391,7 @@ function submitOrder ()
 	else
 		execFailed "There was a problem while submitting your Order, please see the response below:"
 		echo ${response}
-		exit 1
+		handleExit 1
 	fi
 } #submitOrder
 
@@ -298,7 +418,7 @@ function getStringInfo ()
 	else
 		execFailed "There was a problem while getting your string, please see the response below:"
 		echo ${response}
-		exit 1
+		handleExit 1
 	fi
 } #getStringInfo
 
@@ -319,11 +439,11 @@ function getFile ()
 		else
 			execFailed "The system failed while trying to save the file, please check the error message"
 			echo ${writeFile}
-			exit 1
+			handleExit 1
 		fi
 	else
 		execFailed "There was a problem while getting your file, the status code is [${response}]"
-		exit 1
+		handleExit 1
 	fi
 } #getFile
 
@@ -348,7 +468,7 @@ function getFileInfo ()
 	else
 		execFailed "There was a problem while getting your file info, please see the response below:"
 		echo ${response}
-		exit 1
+		handleExit 1
 	fi
 } #getFileInfo
 
@@ -369,7 +489,7 @@ function getComments ()
 	else
 		execFailed "There was a problem while getting your comments"
 		echo ${response}
-		exit 1
+		handleExit 1
 	fi
 } #getComments	
 
@@ -390,7 +510,7 @@ function setComment ()
 	else
 		execFailed "There was a problem while posting your comment"
 		echo ${response}
-		exit 1
+		handleExit 1
 	fi
 } #setComment
 
@@ -405,7 +525,7 @@ function requestQuote()
 	else
 		execFailed "There was a problem while requestiong your Quote for Order [${orderId}]"
 		echo ${response}
-		exit 1
+		handleExit 1
 	fi
 }
 
@@ -425,7 +545,7 @@ function getQuoteDetails()
 	else
 		execFailed "There was a problem while getting your Quote"
 		echo ${response}
-		exit 1
+		handleExit 1
 	fi
 }
 
@@ -446,7 +566,7 @@ function quoteWorkflow()
 			#else
 			#	execFailed "There was a problem while approving your Quote for Order [${orderId}]"
 			#	echo ${response}
-			#	exit 1
+			#	handleExit 1
 			#fi
 		;;
 
@@ -461,13 +581,13 @@ function quoteWorkflow()
 			#else
 			#	execFailed "There was a problem while declining your Quote for Order [${orderId}]"
 			#	echo ${response}
-			#	exit 1
+			#	handleExit 1
 			#fi
 		;;
 		
 		*)
 			execFailed "You should either decline or approve the quote [--approve/--decline]"
-			exit 1
+			handleExit 1
 		;;
 
 	esac
@@ -479,7 +599,7 @@ function quoteWorkflow()
 		else
 			execFailed "There was a problem while ${verbPresCont} your Quote for Order [${orderId}]"
 			echo ${response}
-			exit 1
+			handleExit 1
 		fi
 		
 #	if [[ quoteApprovalStatus == "--approve" || quoteApprovalStatus == "-a" ]]
@@ -505,7 +625,7 @@ function addTargetToOrder()
 	else
 		execFailed "There was a problem while adding the target lang [${targetLang}] to Order [${orderId}]"
 		echo ${response}
-		exit 1
+		handleExit 1
 	fi
 }
 
@@ -537,8 +657,146 @@ function sendReferenceFile()
 	else
 		execFailed "There was a problem while sending your reference file, please see bellow the response:"
 		echo ${response}
-		exit 1
+		handleExit 1
 	fi
+}
+
+function handleExit()
+{
+	if [[ "${consoleActivated}" != true ]]; then
+		exit $1
+	else
+		echo $1 >/dev/null #just do something xD
+	fi
+}
+
+function consoleMode()
+{
+	consoleActivated=true
+	headerGreeting
+	console
+	while [ "${line[0]}" != "exit" ]
+	do 
+		case "${line[0]}" in
+		
+			ls)
+				"${line[@]}"
+			;;
+			cd)
+				"${line[0]}" "${line[1]}"
+			;;
+			
+			pwd)
+				"${line[@]}"
+			;;
+			
+			grep)
+				"${line[@]}"
+			;;
+			
+			find)
+				"${line[@]}"
+			;;
+			
+			cat)
+				"${line[@]}"
+			;;
+			
+			less)
+				"${line[@]}"
+			;;
+			
+			help)
+				usageConsole
+			;;
+	
+			version)
+				versionDisp
+			;;
+		
+			create-order)
+				createAnOrder "${line[1]}"
+			;;
+			
+			post-sting)
+				postString "${line[1]}" "${line[2]}" "${line[3]}" "${line[4]}"
+			;;
+			
+			send-file)
+				sendFile "${line[1]}" "${line[2]}" "${line[3]}" "${line[4]}"
+			;;		
+			
+			send-reference-file)
+				sendReferenceFile "${line[1]}" "${line[2]}" "${line[3]}" "${line[4]}"
+			;;
+			
+			get-order-details)
+				getOrderDetails "${line[1]}"
+			;;
+			
+			get-all-order-details)
+				getAllOrderDetails
+			;;
+			
+			submit-order)
+				submitOrder "${line[1]}"
+			;;
+			
+			get-string-info)
+				getStringInfo "${line[1]}" "${line[2]}"
+			;;
+			
+			get-file)
+				getFile "${line[1]}" "${line[2]}"
+			;;
+			
+			get-file-info)
+				getFileInfo "${line[1]}" "${line[2]}"
+			;;
+			
+			get-order-comments)
+				getComments "${line[1]}" "${line[2]}"
+			;;
+			
+			set-order-comment)
+				setComment "${line[1]}" "${line[2]}"
+			;;
+			
+			request-quote)
+				requestQuote "${line[1]}"
+			;;
+			
+			get-quote-details)
+				getQuoteDetails "${line[1]}"
+			;;
+			
+			quote-decision)
+				quoteWorkflow "${line[1]}" "${line[2]}"
+			;;
+			
+			add-target-lang)
+				addTargetToOrder "${line[1]}" "${line[2]}"
+			;;
+			
+			login)
+				logIn
+			;;
+			
+			logout)
+				logOut
+			;;
+			
+			"")
+				#do nothing
+			;;
+			
+			*)
+				wrongUsageConsole
+			;;
+		esac
+		console
+	done
+	exit 0
 }
 
 
@@ -567,8 +825,12 @@ do
 			exit 0
 		;;
 		
+		--console)
+			consoleMode
+		;;
+		
 	esac
-
+	
 	checkToolsInstalled
 	baseUrl="$1"
 	checkNotEmpty "${baseUrl}" "base URL"
@@ -626,7 +888,7 @@ do
 			exit 0
 		;;
 		
-		--get-order-commnets | -goc)
+		--get-order-comments | -goc)
 			getComments "$4" "$5"
 			exit 0
 		;;
