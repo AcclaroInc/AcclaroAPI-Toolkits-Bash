@@ -3,10 +3,14 @@
 SCRIPT=$( basename "$0" )
 VERSION="0.4-beta"
 consoleActivated=false
-bind '"\e[A": history-search-backward'
-bind '"\e[B": history-search-forward'
+
+### Allow History with arrows
+# bind keys to hisotry search
+#bind '"\e[A": history-search-backward'
+#bind '"\e[B": history-search-forward'
+# set history
 history -r script_history
-set -o vi
+set -o emacs  #set vi as editing style
 history -w script_history
 
 
