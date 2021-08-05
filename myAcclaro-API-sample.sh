@@ -18,67 +18,94 @@ fi
 history -r /tmp/myAcclaroConsole.history
 history -w /tmp/myAcclaroConsole.history
 
+# Checks that dependencies are installed
+function checkToolsInstalled()
+{
+	tools=("curl" "jq")
+	for tool in ${tools[@]}
+	do
+		output=$(${tool} --version 2>&1) 
+		if [ $? -ne 0 ]; then
+			execFailed "[${tool}] is necessary to run this tool, exiting."
+			handleExit 1
+		fi
+	done
+} #checkCurlInstalled
 
-#######################################
-# Function to handle success messages #
-# call as:						 	  #
-#   execSuccess ${message}			  #
-#######################################
+# Function to handle success messages
 function execSuccess()
 {
 	echo -e "$(date +%F\ %T) :: [\e[92mSUCCESS\e[39m] - $1" | tee -a ${logFile}
 } #execSuccess
 
-######################################
-# Function to handle failed messages #
-# call as:						     #
-#   execFailed ${message}			 #
-######################################
+# Function to handle failed messages
 function execFailed()
 {
 	echo -e "$(date +%F\ %T) :: [\e[31mFAIL\e[39m] - $1" | tee -a ${logFile}
 } #execFailed
 
-##################
-# Checks that necessary arguments are sent before launching the function
-##################
+# Checks that mandatory arguments are sent to function before launching
 function checkNotEmpty()
 {
 	if [[ -z $1 ]]; then
 		execFailed "The following mandatory argument [$2] is empty."
 		handleExit 1
 	fi
-}
+} #checkNotEmpty
 
-##################
 # Checks if CSV output is requested
-##################
 function outputCsv()
 {
 	if [[ "$1" == "-csv" ]]; then
 		csvOutput=true
 	fi
-}
+} #outputCsv
 
-##################
-# Checks that cURL is installed
-##################
-function checkToolsInstalled()
+# Handles the exit, if on script it should exit 1 but on console it should just return error
+function handleExit()
 {
-	tools=("curl" "jq")
-	for tool in ${tools[@]}
-	do
-		output=$(${tool} --version)
-		if [ $? -ne 0 ]; then
-			execFailed "[${tool}] is necessary to run this script, exiting."
-			handleExit 1
-		fi
-	done
-} #checkCurlInstalled
+	if [[ "${consoleActivated}" != true ]]; then
+		exit $1
+	else
+		echo $1 >/dev/null #just do something xD
+	fi
+} #handleExit
 
-##########################################
-# Message to display for usage and help. #
-##########################################
+# Message to display when wrong usage of scirpt.
+function wrongUsage()
+{
+	local message="$1"
+	local txt=(
+		"For an overview of the command, execute:"
+		"$SCRIPT --help"
+	)
+
+	[[ ${message} ]] && printf "${message}\n"
+
+	printf "%s\n" "${txt[@]}"
+} #wrongUsage
+function wrongUsageConsole()
+{
+	echo "command '${line[0]}' not found"
+} #wrongUsage
+
+# Message to display for version (script).
+function version
+{
+	local txt=(
+		"$SCRIPT version $VERSION"
+	)
+
+	printf "%s\n" "${txt[@]}"
+} #version
+
+# Message to display version (console)
+function versionConsole()
+{
+	echo "MyAcclaro Console ${VERSION}"
+} #versionConsole
+
+# Message to display for usage and help (script). 
 function usage()
 {
 	local txt=(
@@ -116,6 +143,7 @@ function usage()
 	printf "%s\n" "${txt[@]}"
 } #usage
 
+# Message to display for usage and help (console). 
 function usageConsole()
 {
 	local txt=(
@@ -155,61 +183,27 @@ function usageConsole()
 	printf "%s\n" "${txt[@]}"
 } #usageConsole
 
-########################################
-# Message to display when wrong usage. #
-########################################
-function wrongUsage()
-{
-	local message="$1"
-	local txt=(
-		"For an overview of the command, execute:"
-		"$SCRIPT --help"
-	)
 
-	[[ ${message} ]] && printf "${message}\n"
+############
+# Console  #
+############
 
-	printf "%s\n" "${txt[@]}"
-} #wrongUsage
-
-function wrongUsageConsole()
-{
-	echo "command '${line[0]}' not found"
-} #wrongUsage
-
-###################################
-# Message to display for version. #
-###################################
-function version
-{
-	local txt=(
-		"$SCRIPT version $VERSION"
-	)
-
-	printf "%s\n" "${txt[@]}"
-} #version
-
-function versionConsole()
-{
-	echo "MyAcclaro Console ${VERSION}"
-} #versionConsole
-
-###################
-# Console Handler #
-###################
+# Main console handler, builds the "console echo"
 function console()
 {
 	unset line #clean before using, for sanity purposes! :)
 	if [[ -z ${baseUrl} || -z ${apiKey} ]]; then
-		read -e -p $(echo -e -n "\e[33mMyAcclaro@DISCONNECTED\e[39m> ") input
+		read -e -p $(echo -e -n "\e[33mMyAcclaro@DISCONNECTED\e[39m>") input
 		history -s "${input}"
 		eval line=(${input})
 	else
-		read -e -p $(echo -e -n "\e[92mMyAcclaro@${baseUrl}\e[39m> ") input
+		read -e -p $(echo -e -n "\e[92mMyAcclaro@${baseUrl}\e[39m>") input
 		history -s "${input}"
 		eval line=(${input})
 	fi
-}
+} #console
 
+# Allows to set the domain and the API key for MyAcclaro API
 function logIn()
 {
 	if [[ -z ${baseUrl} || -z ${apiKey} ]]; then
@@ -236,8 +230,9 @@ function logIn()
 		echo "you are already logged in into [${baseUrl}] using the following API key:"
 		echo "[${apiKey}]"
 	fi
-}
+} #logIn
 
+# Unsets the domain and the API key for MyAcclaro API
 function logOut()
 {
 	if [[ -z ${baseUrl} || -z ${apiKey} ]]; then
@@ -247,8 +242,9 @@ function logOut()
 		apiKey=""
 		execSuccess "You have been successfully logged out."
 	fi
-}
+} #logOut
 
+# Creates a greeting screen so it looks cooler
 function headerGreeting()
 {
 	versionConsole
@@ -268,16 +264,7 @@ function headerGreeting()
 		""
 	)
 	printf "%s\n" "${txt[@]}"
-}
-
-function handleExit()
-{
-	if [[ "${consoleActivated}" != true ]]; then
-		exit $1
-	else
-		echo $1 >/dev/null #just do something xD
-	fi
-}
+} #headerGreeting
 
 function consoleMode()
 {
@@ -406,7 +393,12 @@ function consoleMode()
 		console
 	done
 	exit 0
-}
+} #consoleMode
+
+
+####################
+#   API WRAPPING   #
+####################
 
 function createAnOrder()
 {
@@ -507,13 +499,30 @@ function getOrderDetails ()
 		--header "Authorization: Bearer ${apiKey}" \
 	)
 	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
-		#getting the attributes using bash methods only (python strongly recommended for JSON parsing)
-		orderName=$(grep -oE '"name":"[^"]*"' <<< "${response}" | sed 's@"name":@@')
-		orderStatus=$(grep -oE '"status":"[^"]*"' <<< "${response}" | sed 's@"status":@@')
-		processType=$(grep -oE '"process_type":"[^"]*"' <<< "${response}" | sed 's@"process_type":@@')
-		dueDate=$(grep -oE '"duedate":"[^"]*"' <<< "${response}" | sed 's@"duedate":@@') #does not work, check it!
+		getting the attributes using jq - yes, an array would have made sense
+		orderName=$(jq -r '.data.name' <<< "${response}")
+		orderStatus=$(jq -r '.data.status' <<< "${response}")
+		processType=$(jq -r '.data.process_type' <<< "${response}")
+		dueDate=$(jq -r '.data.duedate' <<< "${response}") 
+		createdDate=$(jq -r '.data.created' <<< "${response}") 
+		createdBy=$(jq -r '.data.emailaddress' <<< "${response}")
+		sourceLang=$(jq -r '.data.sourcelang' <<< "${response}")
+		targetLangs=$(jq -r '.data.targetlang[]' <<< "${response}")
 		execSuccess "Your Order [${orderId}] has the following attributes:" 
-		printf "\n\t* Order ID: ${orderId}\n\t* Order Name: ${orderName}\n\t* Status: ${orderStatus}\n\t* Process Type: ${processType}\n\t* Due date: ${dueDate}\n\n"
+		local txt=(
+			""
+			"	* Order ID: ${orderId}"
+			"	* Order Name: ${orderName}"
+			"	* Status: ${orderStatus}"
+			"	* Process Type: ${processType}"
+			"	* Source Language: ${sourceLang}"
+			"	* Target Language(s): ${targetLangs[@]}"
+			"	* Creation Date: ${createdDate}"
+			"	* Created By: ${createdBy}"
+			"	* Due date: ${dueDate}"
+			""
+		)
+		printf "%s\n" "${txt[@]}"
 	else
 		execFailed "There was a problem while getting your Order, please see the response below:"
 		echo ${response} | jq
@@ -540,7 +549,7 @@ function getAllOrderDetails ()
 		echo ${response} | jq
 		handleExit 1
 	fi
-} #getOrderDetails
+} #getAllOrderDetails
 
 function submitOrder ()
 {
@@ -678,9 +687,7 @@ function setComment ()
 	)
 	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
 		execSuccess "Your Order [${orderId}] has been added the following comment:"
-		echo "	****** Comment Start ******"
 		echo "	*    ${commentLine}"
-		echo "	****** Comment End ******"
 	else
 		execFailed "There was a problem while posting your comment"
 		echo ${response} | jq
@@ -703,7 +710,7 @@ function requestQuote()
 		echo ${response} | jq
 		handleExit 1
 	fi
-}
+} #requestQuote
 
 function getQuoteDetails()
 {
@@ -715,8 +722,6 @@ function getQuoteDetails()
 	)
 	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
 		totalQuote=$(echo ${response} | jq -r .data.total)
-		#arrayLength=$(echo ${response} | jq -r '(.data.lines | length)')
-		#echo ${arrayLength}
 		execSuccess "Quote details for Order [${orderId}] are bellow:"
 		echo ${response} | jq -r '["Description","Quantity","Unit Price","Subtotal"], ["-----------","--------","----------","--------"], (.data.lines[] | [.description, .quantity, "$"+.unitprice, "$"+.price])  | @tsv' | column -ts $'\t'
 		echo "** TOTAL: \$${totalQuote}" 
@@ -725,7 +730,7 @@ function getQuoteDetails()
 		echo ${response} | jq
 		handleExit 1
 	fi
-}
+} #getQuoteDetails
 
 function quoteWorkflow()
 {
@@ -763,7 +768,7 @@ function quoteWorkflow()
 			echo ${response} | jq
 			handleExit 1
 		fi	
-}
+} #quoteWorkflow
 
 function addTargetToOrder()
 {
@@ -783,12 +788,12 @@ function addTargetToOrder()
 		echo ${response} | jq
 		handleExit 1
 	fi
-}
+} #addTargetToOrder
 
 #function addSourceAndTargetToOrder()
 #{
 #	#stuff
-#}
+#} #addSourceAndTargetToOrder
 
 function sendReferenceFile()
 {
@@ -817,14 +822,16 @@ function sendReferenceFile()
 		echo ${response} | jq
 		handleExit 1
 	fi
-}
+} #sendReferenceFile
 
 
 ################
-###			 ###
 ###   BODY   ###
-###			 ###
 ################
+
+#check that all dependencies are met before starting
+checkToolsInstalled
+
 #if no arguments defined, then print script usage
 if [[ $# -eq 0 ]] ; then
 	usage
@@ -852,7 +859,6 @@ do
 		
 	esac
 	
-	checkToolsInstalled
 	baseUrl="$1"
 	checkNotEmpty "${baseUrl}" "base URL"
 	apiKey="$2"
