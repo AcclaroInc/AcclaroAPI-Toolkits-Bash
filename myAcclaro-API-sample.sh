@@ -453,7 +453,6 @@ function createAnOrder()
 		${processType} \
 	)
 	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
-		#getting the Order ID using bash methods only (python strongly recommended for JSON parsing)
 		orderId=$(jq -r '.data.orderid' <<< ${response})
 			if [ "${string}" = "string" ]; then 
 				execSuccess "Your Order for Strings has been created and has id [${orderId}]" 
@@ -484,7 +483,6 @@ function postString ()
 		--data-raw "{\"strings\":[{\"value\":\"${sourceString}\",\"target_lang\":[\"${targertLang}\"],\"source_lang\": \"${sourceLang}\"}]}" \
 	)
 	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
-		#getting the string ID using bash methods only (python strongly recommended for JSON parsing)
 		stringId=$(grep -oE '"string_id":[0-9]*' <<< "${response}" | sed 's@"string_id":@@')
 		execSuccess "Your string has been posted to Order [${orderId}] and has String ID: [${stringId}]" 
 	else
@@ -514,7 +512,6 @@ function sendFile ()
 		--form "file=@\"${pathToSourceFile}\"" \
 	)
 	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
-		#getting the file ID using bash methods only (python strongly recommended for JSON parsing)
 		fileId=$(jq -r '.data.fileid' <<< ${response})
 		execSuccess "Your source file has been posted to Order [${orderId}] and has File ID: [${fileId}]" 
 	else
@@ -534,7 +531,7 @@ function getOrderDetails ()
 		--header "Authorization: Bearer ${apiKey}" \
 	)
 	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
-		getting the attributes using jq - yes, an array would have made sense
+		#getting the attributes using jq - yes, an array would have made sense
 		orderName=$(jq -r '.data.name' <<< "${response}")
 		orderStatus=$(jq -r '.data.status' <<< "${response}")
 		processType=$(jq -r '.data.process_type' <<< "${response}")
