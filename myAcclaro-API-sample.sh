@@ -125,6 +125,7 @@ function usageConsole()
 		"Commands:"
 		"	login	Interactive login to MyAcclaro API."
 		"	logout	Clears the login information."
+		"	exit	Exits the MyAcclaro console"
 		"	help	Print help."
 		"	version	Print version."
 		"	create-order <name> [string]	Create an Order, if \"string\" added as parameter, then the Order takes strings rather than files."
@@ -199,13 +200,11 @@ function console()
 {
 	unset line #clean before using, for sanity purposes! :)
 	if [[ -z ${baseUrl} || -z ${apiKey} ]]; then
-		echoConsole=$(echo -e -n "\e[33mMyAcclaro@DISCONNECTED\e[39m> ")
-		read -e -p "${echoConsole}" input
+		read -e -p $(echo -e -n "\e[33mMyAcclaro@DISCONNECTED\e[39m> ") input
 		history -s "${input}"
 		eval line=(${input})
 	else
-		echoConsole=$(echo -e -n "\e[92mMyAcclaro@${baseUrl}\e[39m> ")
-		read -e -p "${echoConsole}" input
+		read -e -p $(echo -e -n "\e[92mMyAcclaro@${baseUrl}\e[39m> ") input
 		history -s "${input}"
 		eval line=(${input})
 	fi
@@ -241,9 +240,13 @@ function logIn()
 
 function logOut()
 {
-	baseUrl=""
-	apiKey=""
-	execSuccess "You have been successfully logged out."
+	if [[ -z ${baseUrl} || -z ${apiKey} ]]; then
+		execFailed "You cannot be logged out because you are not logged in!"
+	else
+		baseUrl=""
+		apiKey=""
+		execSuccess "You have been successfully logged out."
+	fi
 }
 
 function headerGreeting()
