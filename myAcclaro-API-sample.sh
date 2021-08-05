@@ -5,6 +5,10 @@ SCRIPT=$( basename "$0" )
 VERSION="0.4-beta"
 consoleActivated=false #sets the console mode off by default
 
+##################
+# Core Functions #
+##################
+
 ### Basic Log
 logFile=/tmp/myAcclaro.log
 if [[ ! -e /tmp/myAcclaro.log ]]; then
@@ -18,6 +22,7 @@ fi
 history -r /tmp/myAcclaroConsole.history
 history -w /tmp/myAcclaroConsole.history
 
+
 # Checks that dependencies are installed
 function checkToolsInstalled()
 {
@@ -26,7 +31,7 @@ function checkToolsInstalled()
 	do
 		output=$(${tool} --version 2>&1) 
 		if [ $? -ne 0 ]; then
-			execFailed "[${tool}] is necessary to run this tool, exiting."
+			execFailed "[${tool}] is necessary to run this application, exiting."
 			handleExit 1
 		fi
 	done
@@ -113,28 +118,38 @@ function usage()
 		"Usage: $SCRIPT <base URL> <API key> [options] <arguments>"
 		""
 		"Command:"
+		"--------"
 		"	<base URL>	e.g. \"apisandbox.acclaro.com\""
 		"	<api Key>	e.g. \"pYXQiOjE2MjYyODYxOTIsInN1YiI6...\""
 		""
 		"Options:"
+		"--------"
 		"	--help, -h	Print help."
 		"	--version, -v	Print version."
 		"	--console, -c	Starts the interactive Console Mode"
-		"	--create-order, -co <name> [string]	Create an Order, if \"string\" added as parameter, then the Order takes strings rather than files."
-		"	--add-target-lang, -atl <orderID> <targetLang>	Adds a target language to an Order."
-		"	--post-string, -ps <orderID> <sourceString> <sourceLang> <targertLang>	Post a string."
-		"	--send-file, -sf <orderID> <sourceLang> <targertLang> <path_to_file>	Sends a source file."
-		"	--send-reference-file, -srf <orderID> <sourceLang> <targertLang> <path_to_reference_file>	Sends a reference file (e.g. a styleguide) for a particular language."
-		"	--get-order-details, -god <orderID>	Gets Order details."
-		"	--get-all-order-details, -gaod <orderID>	Gets All Order details."
-		"	--set-order-comment, -soc <orderID> <comment>	Sets a Comment for the Order"
-		"	--get-order-comments, -goc <orderID>	Gets the Order Comments"
+		""
+		"Parameters"
+		"----------"
+		"* Orders:"
+		"	--create-order, -co <name> [string]	Creates an Order, if \"string\" added as parameter, then the Order takes strings rather than files."
+		"	--add-target-lang, -atl <orderID> <targetLang>	Adds a target language to the specified Order."
+		"	--add-lang-pair, -alp <orderID> <sourceLang> <targetLang>	Adds a language pair to the specified Order."
+		"	--get-order-details, -god <orderID>	Gets the specified Order details."
+		"	--get-all-order-details, -gaod <orderID>	Gets all Order details."
+		"	--set-order-comment, -soc <orderID> <comment>	Sets a comment for the Order"
+		"	--get-order-comments, -goc <orderID>	Gets the Order comments"
 		"	--submit-order, -so <orderID>	Submits the Order for preparation and then translation."
-		"	--get-string-info, -gsi <orderID> <stringID>	Gets the String information and the translated string once completed."
+		"* Files:"
+		"	--send-file, -sf <orderID> <sourceLang> <targertLang> <path_to_file>	Sends a source file for translation."
+		"	--send-reference-file, -srf <orderID> <sourceLang> <targertLang> <path_to_reference_file>	Sends a reference file (e.g. a styleguide) for a particular language."
 		"	--get-file, -gf <orderID> <fileID>	Gets a file based on its ID."
 		"	--get-file-info, -gfi <orderID> <fileID>	Gets the information of a file based on its ID."
+		"* Strings:"
+		"	--post-string, -ps <orderID> <sourceString> <sourceLang> <targertLang>	Posts a string for translation."
+		"	--get-string-info, -gsi <orderID> <stringID>	Gets the string information and the translated string once completed."
+		"* Quotes:"
 		"	--request-quote, -rq <orderID>	Requests a quote for the Order."
-		"	--get-quote-details, -gqd <orderID>	Gets the Quote status for the Order."
+		"	--get-quote-details, -gqd <orderID>	Gets the Quote status and details for the Order."
 		"	--quote-decision, -qd <orderID> [--approve,-a/--decline,-d]	Approves/declines the quoted price for the Order."
 		""
 		"Example:"
@@ -150,34 +165,43 @@ function usageConsole()
 		""
 		"MyAcclaro Console for Querying MyAcclaro's REST API."
 		""
-		"Commands:"
+		"System Commands:"
 		"	login	Interactive login to MyAcclaro API."
 		"	logout	Clears the login information."
 		"	exit	Exits the MyAcclaro console"
 		"	help	Print help."
 		"	version	Print version."
-		"	create-order <name> [string]	Create an Order, if \"string\" added as parameter, then the Order takes strings rather than files."
-		"	add-target-lang <orderID> <targetLang>	Adds a target language to an Order."
-		"	post-string <orderID> <sourceString> <sourceLang> <targertLang>	Post a string."
-		"	send-file <orderID> <sourceLang> <targertLang> <path_to_file>	Sends a source file."
-		"	send-reference-file <orderID> <sourceLang> <targertLang> <path_to_reference_file>	Sends a reference file (e.g. a styleguide) for a particular language."
-		"	get-order-details <orderID>	Gets Order details."
-		"	get-all-order-details	Gets All Order details."
-		"	set-order-comment <orderID> <comment>	Sets a Comment for the Order"
-		"	get-order-comments <orderID>	Gets the Order Comments"
-		"	submit-order <orderID>	Submits the Order for preparation and then translation."
-		"	get-string-info <orderID> <stringID>	Gets the String information and the translated string once completed."
-		"	get-file <orderID> <fileID>	Gets a file based on its ID."
-		"	get-file-info <orderID> <fileID>	Gets the information of a file based on its ID."
-		"	request-quote <orderID>	Requests a quote for the Order."
-		"	get-quote-details <orderID>	Gets the Quote status for the Order."
-		"	quote-decision <orderID> [--approve,-a/--decline,-d]	Approves/declines the quoted price for the Order."
-		""
-		"Example:"
-		"MyAcclaro> send-file 15554 en-us de-de ./mySourceFile.docx"
 		""
 		"Shell commands:"
 		"	The following shell commands are available: ls, cd, pwd, grep, find, cat, less"
+		"	[CTRL+C] Is captured by this script" 
+		""
+		"MyAcclaro Commands"
+		"* Orders:"
+		"	create-order <name> [string]	Creates an Order, if \"string\" added as parameter, then the Order takes strings rather than files."
+		"	add-target-lang <orderID> <targetLang>	Adds a target language to the specified Order."
+		"	add-lang-pair <orderID> <sourceLang> <targetLang>	Adds a language pair to the specified Order."
+		"	get-order-details <orderID>	Gets the specified Order details."
+		"	get-all-order-details <orderID>	Gets all Order details."
+		"	set-order-comment <orderID> <comment>	Sets a comment for the Order"
+		"	get-order-comments <orderID>	Gets the Order comments"
+		"	submit-order <orderID>	Submits the Order for preparation and then translation."
+		"* Files:"
+		"	send-file <orderID> <sourceLang> <targertLang> <path_to_file>	Sends a source file for translation."
+		"	send-reference-file <orderID> <sourceLang> <targertLang> <path_to_reference_file>	Sends a reference file (e.g. a styleguide) for a particular language."
+		"	get-file <orderID> <fileID>	Gets a file based on its ID."
+		"	get-file-info <orderID> <fileID>	Gets the information of a file based on its ID."
+		"* Strings:"
+		"	post-string <orderID> <sourceString> <sourceLang> <targertLang>	Posts a string for translation."
+		"	get-string-info <orderID> <stringID>	Gets the string information and the translated string once completed."
+		"* Quotes:"
+		"	request-quote <orderID>	Requests a quote for the Order."
+		"	get-quote-details <orderID>	Gets the Quote status and details for the Order."
+		"	quote-decision <orderID> [--approve,-a/--decline,-d]	Approves/declines the quoted price for the Order."
+		""
+		""
+		"Example:"
+		"MyAcclaro@test> send-file 15554 en-us de-de ./mySourceFile.docx"
 		""
 	)
 	printf "%s\n" "${txt[@]}"
@@ -191,6 +215,7 @@ function usageConsole()
 # Main console handler, builds the "console echo"
 function console()
 {
+	trap ctrl_c INT #trap control+c and send it to function to handle
 	unset line #clean before using, for sanity purposes! :)
 	if [[ -z ${baseUrl} || -z ${apiKey} ]]; then
 		read -e -p $(echo -e -n "\e[33mMyAcclaro@DISCONNECTED\e[39m>") input
@@ -202,6 +227,11 @@ function console()
 		eval line=(${input})
 	fi
 } #console
+
+function ctrl_c()
+{
+	printf "\n[CTRL+C] detected - if you need to exit, please type 'exit' (press 'enter' to continue)"
+}
 
 # Allows to set the domain and the API key for MyAcclaro API
 function logIn()
@@ -266,6 +296,7 @@ function headerGreeting()
 	printf "%s\n" "${txt[@]}"
 } #headerGreeting
 
+# Provides the command control for console
 function consoleMode()
 {
 	consoleActivated=true
@@ -372,6 +403,10 @@ function consoleMode()
 			
 			add-target-lang)
 				addTargetToOrder "${line[1]}" "${line[2]}"
+			;;
+			
+			add-lang-pair)
+				addSourceAndTargetToOrder "${line[1]}" "${line[2]}" "${line[3]}"
 			;;
 			
 			login)
@@ -790,10 +825,28 @@ function addTargetToOrder()
 	fi
 } #addTargetToOrder
 
-#function addSourceAndTargetToOrder()
-#{
-#	#stuff
-#} #addSourceAndTargetToOrder
+function addSourceAndTargetToOrder()
+{
+	orderId=$1
+	checkNotEmpty "${orderId}" "<OrderID>"
+	sourceLang=$2
+	checkNotEmpty "${sourcetLang}" "<sourceLang>"
+	targetLang=$3
+	checkNotEmpty "${targetLang}" "<targetLang>"
+	response=$(
+		curl --location --silent --request POST "https://${baseUrl}/api/v2/orders/${orderId}/language-pair" \
+		--header "Authorization: Bearer ${apiKey}" \
+		--data-urlencode "sourcelang=${sourceLang}" \
+		--data-urlencode "targetlang=${targetLang}" \
+	)
+	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
+		execSuccess "The following language pair: [${sourceLang} > ${targetLang}] has been succesfully added to the Order [${orderId}]"
+	else
+		execFailed "There was a problem while adding the language pair: [${sourceLang} > ${targetLang}] to Order [${orderId}]"
+		echo ${response} | jq
+		handleExit 1
+	fi
+} #addSourceAndTargetToOrder
 
 function sendReferenceFile()
 {
@@ -829,16 +882,16 @@ function sendReferenceFile()
 ###   BODY   ###
 ################
 
-#check that all dependencies are met before starting
+# check that all dependencies are met before starting
 checkToolsInstalled
 
-#if no arguments defined, then print script usage
+# if no arguments defined, then print script usage
 if [[ $# -eq 0 ]] ; then
 	usage
 	exit 1
 fi
 
-#read arguments and execute accordingly
+# read arguments and execute accordingly
 while (( $# ))
 do
 	case "$1" in
@@ -942,6 +995,11 @@ do
 		
 		--add-target-lang | -atl)
 			addTargetToOrder "$4" "$5"
+			exit 0
+		;;
+		
+		--add-lang-pair | -alp)
+			addSourceAndTargetToOrder "$4" "$5" "$6"
 			exit 0
 		;;
 		
