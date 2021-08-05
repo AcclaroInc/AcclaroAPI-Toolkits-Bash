@@ -222,7 +222,7 @@ function logIn()
 			curl --location --silent --request GET "https://${domain}/api/v2/info/account" \
 			--header "Authorization: Bearer ${key}" \
 		)
-		if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+		if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
 			firstname=$(echo ${response} | jq -r '(.data.firstname)')
 			lastname=$(echo ${response} | jq -r '(.data.lastname)')
 			execSuccess "Welcome back ${firstname} ${lastname}!"
@@ -425,9 +425,9 @@ function createAnOrder()
 		--form "name=\"${orderName}\"" \
 		${processType} \
 	)
-	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
 		#getting the Order ID using bash methods only (python strongly recommended for JSON parsing)
-		orderId=$(grep -oE '"orderid":[0-9]*' <<< "${response}" | sed 's@"orderid":@@')
+		orderId=$(jq -r '.data.orderid' <<< ${response})
 			if [ "${string}" = "string" ]; then 
 				execSuccess "Your Order for Strings has been created and has id [${orderId}]" 
 			else
@@ -456,7 +456,7 @@ function postString ()
 		--header 'Content-Type: application/json' \
 		--data-raw "{\"strings\":[{\"value\":\"${sourceString}\",\"target_lang\":[\"${targertLang}\"],\"source_lang\": \"${sourceLang}\"}]}" \
 	)
-	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
 		#getting the string ID using bash methods only (python strongly recommended for JSON parsing)
 		stringId=$(grep -oE '"string_id":[0-9]*' <<< "${response}" | sed 's@"string_id":@@')
 		execSuccess "Your string has been posted to Order [${orderId}] and has String ID: [${stringId}]" 
@@ -486,9 +486,9 @@ function sendFile ()
 		--form "targetlang=\"${targetLang}\"" \
 		--form "file=@\"${pathToSourceFile}\"" \
 	)
-	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
 		#getting the file ID using bash methods only (python strongly recommended for JSON parsing)
-		fileId=$(grep -oE '"fileid":[0-9]*' <<< "${response}" | sed 's@"fileid":@@')
+		fileId=$(jq -r '.data.fileid' <<< ${response})
 		execSuccess "Your source file has been posted to Order [${orderId}] and has File ID: [${fileId}]" 
 	else
 		execFailed "There was a problem while sending your source file, please see bellow the response:"
@@ -506,7 +506,7 @@ function getOrderDetails ()
 		curl --silent --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}"  \
 		--header "Authorization: Bearer ${apiKey}" \
 	)
-	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
 		#getting the attributes using bash methods only (python strongly recommended for JSON parsing)
 		orderName=$(grep -oE '"name":"[^"]*"' <<< "${response}" | sed 's@"name":@@')
 		orderStatus=$(grep -oE '"status":"[^"]*"' <<< "${response}" | sed 's@"status":@@')
@@ -528,7 +528,7 @@ function getAllOrderDetails ()
 		curl --silent --location --request GET "https://${baseUrl}/api/v2/orders"  \
 		--header "Authorization: Bearer ${apiKey}" \
 	)
-	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
 		if [ "${csvOutput}" = true ]; then
 			echo ${response} | jq -r '.data[] | [.orderid, .name, .status, .process_type, .user.email, .duedate] | @csv' | awk -v FS="\t" 'BEGIN{print "\"Order ID\",\"Order Name\",\"Status\",\"Type\",\"Creator\",\"Due Date\""}{printf "%s\t%s\t%s%s\t%s\t%s\t%s",$1,$2,$3,$4,$5,$6,ORS}'
 		else
@@ -550,7 +550,7 @@ function submitOrder ()
 		curl --silent --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/submit"  \
 		--header "Authorization: Bearer ${apiKey}" \
 	)
-	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
 		execSuccess "Your Order [${orderId}] has beeen submitted" 
 	else
 		execFailed "There was a problem while submitting your Order, please see the response below:"
@@ -569,7 +569,7 @@ function getStringInfo ()
 		curl --silent --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}/strings/${stringId}"  \
 		--header "Authorization: Bearer ${apiKey}" \
 	)
-	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
 		#getting the attributes using bash methods only (python strongly recommended for JSON parsing)
 		execSuccess " has the following strings submitted" 
 		translatedString=$(grep -oE '"translated_value":[^,]*,' <<< "${response}" | sed 's@"translated_value":@@')
@@ -601,7 +601,7 @@ function getFile ()
 			--header "Authorization: Bearer ${apiKey}" \
 		)
 	if [ ${response} -eq 200 ]; then
-		writeFileTest=$(echo ${fileName} >${fileName}.test && rm ${fileName}.test)
+		writeFileTest=$(echo ${fileName} >${fileName}.test && rm ${fileName}.test) #test to check if we can write in the destination folder, cURL will not return an error for that
 		if [ $? -eq 0 ]; then
 			execSuccess "Your file with ID [${fileId}] has been downloaded here: ${fileName}" 
 		else
@@ -625,7 +625,7 @@ function getFileInfo ()
 		curl --silent --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}/files/${fileId}/status"  \
 		--header "Authorization: Bearer ${apiKey}" \
 	)
-	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
 		#getting the attributes using bash methods only (python strongly recommended for JSON parsing)
 		fileName=$(grep -oE '"filename":"[^"]*"' <<< "${response}" | sed 's@"filename":@@')
 		fileStatus=$(grep -oE '"status":"[^"]*"' <<< "${response}" | sed 's@"status":@@')
@@ -651,7 +651,7 @@ function getComments ()
 		curl --location --silent --request GET "https://${baseUrl}/api/v2/orders/${orderId}/comments" \
 		--header "Authorization: Bearer ${apiKey}" \
 	)
-	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
 		if [ "${csvOutput}" = true ]; then
 			echo ${response} | jq -r '.data[] | [.author, .timestamp, .comment] | @csv' | awk -v FS="\t" 'BEGIN{print "\"Author\",\"Creation Date\",\"Comment\""}{printf "%s\t%s\t%s%s",$1,$2,$3,ORS}'	
 		else
@@ -676,7 +676,7 @@ function setComment ()
 		--header "Authorization: Bearer ${apiKey}" \
 		--data-urlencode "comment=${commentLine}" \
 	)
-	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
 		execSuccess "Your Order [${orderId}] has been added the following comment:"
 		echo "	****** Comment Start ******"
 		echo "	*    ${commentLine}"
@@ -696,7 +696,7 @@ function requestQuote()
 		curl --location --silent --request GET "https://${baseUrl}/api/v2/orders/${orderId}/quote" \
 		--header "Authorization: Bearer ${apiKey}" \
 	)
-	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
 		execSuccess "Quote succesfully requested for Order [${orderId}]" 
 	else
 		execFailed "There was a problem while requestiong your Quote for Order [${orderId}]"
@@ -713,7 +713,7 @@ function getQuoteDetails()
 		curl --location --silent --request GET "https://${baseUrl}/api/v2/orders/${orderId}/quote-details" \
 		--header "Authorization: Bearer ${apiKey}" \
 	)
-	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
 		totalQuote=$(echo ${response} | jq -r .data.total)
 		#arrayLength=$(echo ${response} | jq -r '(.data.lines | length)')
 		#echo ${arrayLength}
@@ -756,7 +756,7 @@ function quoteWorkflow()
 			curl --location --silent --request POST "https://${baseUrl}/api/v2/orders/${orderId}/${quoteDecision}" \
 			--header "Authorization: Bearer ${apiKey}" \
 		)
-		if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+		if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
 			execSuccess "The Quote for Order [${orderId}] has been succesfully ${verbPast}"
 		else
 			execFailed "There was a problem while ${verbPresCont} your Quote for Order [${orderId}]"
@@ -776,7 +776,7 @@ function addTargetToOrder()
 		--header "Authorization: Bearer ${apiKey}" \
 		--data-urlencode "targetlang=${targetLang}" \
 	)
-	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
 		execSuccess "The following target language: [${targetLang}] has been succesfully added to the Order [${orderId}]"
 	else
 		execFailed "There was a problem while adding the target lang [${targetLang}] to Order [${orderId}]"
@@ -808,9 +808,9 @@ function sendReferenceFile()
 		--form "targetlang=\"${targetLang}\"" \
 		--form "file=@\"${pathToReferenceFile}\"" \
 	)
-	if [ $? -eq 0 ] && [ "$(grep -oE '\"success\":[a-z]*' <<< \"${response}\" | sed 's@\"success\":@@')" = "true" ]; then
+	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
 		#getting the file ID using bash methods only (python strongly recommended for JSON parsing)
-		fileId=$(grep -oE '"fileid":[0-9]*' <<< "${response}" | sed 's@"fileid":@@')
+		fileId=$(jq -r '.data.fileid' <<< ${response})
 		execSuccess "Your reference file has been posted to Order [${orderId}] for the following target lang(s): [${targetLang}]" 
 	else
 		execFailed "There was a problem while sending your reference file, please see bellow the response:"
