@@ -71,8 +71,10 @@ function handleExit()
 {
 	if [[ "${consoleActivated}" != true ]]; then
 		exit $1
+		consoleDie=false #this is not really needed
 	else
 		echo $1 >/dev/null #just do something xD
+		consoleDie=true #set variable to true so that it is read in the function and it exits the function
 	fi
 } #handleExit
 
@@ -445,6 +447,9 @@ function createAnOrder()
 		processType=""
 	fi
 	checkNotEmpty "${orderName}" "<name>"
+	if [[ "${consoleDie}" == true ]]; then
+		return 1
+	fi
 	response=$(
 		curl --silent --location --request POST "https://${baseUrl}/api/v2/orders" \
 		--header 'Content-Type: multipart/form-data' \
@@ -476,6 +481,9 @@ function postString ()
 	checkNotEmpty "${sourceLang}" "<sourceLang>"
 	targertLang=$4
 	checkNotEmpty "${targertLang}" "<targertLang>"
+	if [[ "${consoleDie}" == true ]]; then
+		return 1
+	fi
 	response=$(
 		curl --silent --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/strings" \
 		--header "Authorization: Bearer ${apiKey}" \
@@ -503,6 +511,9 @@ function sendFile ()
 	checkNotEmpty "${targetLang}" "<targertLang>"
 	pathToSourceFile=$4
 	checkNotEmpty "${pathToSourceFile}" "<path_to_file>"
+	if [[ "${consoleDie}" == true ]]; then
+		return 1
+	fi
 	response=$(
 		curl --silent --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/files" \
 		--header 'Content-Type: multipart/form-data' \
@@ -526,6 +537,9 @@ function getOrderDetails ()
 {
 	orderId=$1
 	checkNotEmpty "${orderId}" "<OrderID>"
+	if [[ "${consoleDie}" == true ]]; then
+		return 1
+	fi
 	response=$(
 		curl --silent --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}"  \
 		--header "Authorization: Bearer ${apiKey}" \
@@ -587,6 +601,9 @@ function submitOrder ()
 {
 	orderId=$1
 	checkNotEmpty "${orderId}" "<OrderID>"
+	if [[ "${consoleDie}" == true ]]; then
+		return 1
+	fi
 	response=$(
 		curl --silent --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/submit"  \
 		--header "Authorization: Bearer ${apiKey}" \
@@ -606,6 +623,9 @@ function getStringInfo ()
 	checkNotEmpty "${orderId}" "<OrderID>"
 	stringId=$2
 	checkNotEmpty "${stringId}" "<stringID>"
+	if [[ "${consoleDie}" == true ]]; then
+		return 1
+	fi
 	response=$(
 		curl --silent --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}/strings/${stringId}"  \
 		--header "Authorization: Bearer ${apiKey}" \
@@ -632,6 +652,9 @@ function getFile ()
 	checkNotEmpty "${orderId}" "<OrderID>"
 	fileId=$2
 	checkNotEmpty "${fileId}" "<FileID>"
+	if [[ "${consoleDie}" == true ]]; then
+		return 1
+	fi
 	#set a filename if needed, you can also use the "fileName" variable form the function "getFileInfo"
 	fileName="$(pwd)/output.myacclaro"
 		response=$(
@@ -659,6 +682,9 @@ function getFileInfo ()
 	checkNotEmpty "${orderId}" "<OrderID>"
 	fileId=$2
 	checkNotEmpty "${fileId}" "<FileID>"
+	if [[ "${consoleDie}" == true ]]; then
+		return 1
+	fi
 	response=$(
 		curl --silent --location --request GET "https://${baseUrl}/api/v2/orders/${orderId}/files/${fileId}/status"  \
 		--header "Authorization: Bearer ${apiKey}" \
@@ -684,6 +710,9 @@ function getComments ()
 {
 	orderId=$1
 	checkNotEmpty "${orderId}" "<OrderID>"
+	if [[ "${consoleDie}" == true ]]; then
+		return 1
+	fi
 	outputCsv $2
 	response=$(
 		curl --location --silent --request GET "https://${baseUrl}/api/v2/orders/${orderId}/comments" \
@@ -709,6 +738,9 @@ function setComment ()
 	checkNotEmpty "${orderId}" "<OrderID>"
 	commentLine=$2
 	checkNotEmpty "${commentLine}" "<Comment>"
+	if [[ "${consoleDie}" == true ]]; then
+		return 1
+	fi
 	response=$(
 		curl --location --silent --request POST "https://${baseUrl}/api/v2/orders/${orderId}/comment" \
 		--header "Authorization: Bearer ${apiKey}" \
@@ -728,6 +760,9 @@ function requestQuote()
 {
 	orderId=$1
 	checkNotEmpty "${orderId}" "<OrderID>"
+	if [[ "${consoleDie}" == true ]]; then
+		return 1
+	fi
 	response=$(
 		curl --location --silent --request GET "https://${baseUrl}/api/v2/orders/${orderId}/quote" \
 		--header "Authorization: Bearer ${apiKey}" \
@@ -745,6 +780,9 @@ function getQuoteDetails()
 {
 	orderId=$1
 	checkNotEmpty "${orderId}" "<OrderID>"
+	if [[ "${consoleDie}" == true ]]; then
+		return 1
+	fi
 	response=$(
 		curl --location --silent --request GET "https://${baseUrl}/api/v2/orders/${orderId}/quote-details" \
 		--header "Authorization: Bearer ${apiKey}" \
@@ -765,6 +803,9 @@ function quoteWorkflow()
 {
 	orderId=$1
 	checkNotEmpty "${orderId}" "<OrderID>"
+	if [[ "${consoleDie}" == true ]]; then
+		return 1
+	fi
 	checkNotEmpty "$2" "<--approve/--decline>"
 	case "$2" in
 		--approve | -a)
@@ -806,6 +847,9 @@ function addTargetToOrder()
 	checkNotEmpty "${orderId}" "<OrderID>"
 	targetLang=$2
 	checkNotEmpty "${targetLang}" "<targetLang>"
+	if [[ "${consoleDie}" == true ]]; then
+		return 1
+	fi
 	response=$(
 		curl --location --silent --request POST "https://${baseUrl}/api/v2/orders/${orderId}/language" \
 		--header "Authorization: Bearer ${apiKey}" \
@@ -828,6 +872,9 @@ function addSourceAndTargetToOrder()
 	checkNotEmpty "${sourceLang}" "<sourceLang>"
 	targetLang=$3
 	checkNotEmpty "${targetLang}" "<targetLang>"
+	if [[ "${consoleDie}" == true ]]; then
+		return 1
+	fi
 	response=$(
 		curl --location --silent --request POST "https://${baseUrl}/api/v2/orders/${orderId}/language-pair" \
 		--header "Authorization: Bearer ${apiKey}" \
@@ -853,6 +900,9 @@ function sendReferenceFile()
 	checkNotEmpty "${targetLang}" "<targertLang>"
 	pathToReferenceFile=$4
 	checkNotEmpty "${pathToReferenceFile}" "<path_to_reference_file>"
+	if [[ "${consoleDie}" == true ]]; then
+		return 1
+	fi
 	response=$(
 		curl --silent --location --request POST "https://${baseUrl}/api/v2/orders/${orderId}/reference-file" \
 		--header 'Content-Type: multipart/form-data' \
