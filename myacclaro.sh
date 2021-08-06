@@ -827,7 +827,7 @@ function addSourceAndTargetToOrder()
 	orderId=$1
 	checkNotEmpty "${orderId}" "<OrderID>"
 	sourceLang=$2
-	checkNotEmpty "${sourcetLang}" "<sourceLang>"
+	checkNotEmpty "${sourceLang}" "<sourceLang>"
 	targetLang=$3
 	checkNotEmpty "${targetLang}" "<targetLang>"
 	response=$(
