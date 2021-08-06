@@ -1,4 +1,3 @@
-![image](https://img.shields.io/badge/Shell_Script-121011?style=for-the-badge&logo=gnu-bash&logoColor=white) 
 ## Description
 The purpose of this script is to facilitate our dev clients a seamless integration to [My Acclaro](https://www.acclaro.com/our-technology-platform/client-portal/) REST API.
 
