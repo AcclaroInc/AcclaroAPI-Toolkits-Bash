@@ -5,6 +5,8 @@ The script is intended to be run on Bash 5.x or newer, older versions have not b
 
 The script offers the possibility interacting with My Acclaro Portal and requesting Acclaro services without leaving your current environment.
 
+**Got any questions?** Contact support@acclaro.com or file an [issue](https://github.com/AcclaroInc/AcclaroAPI-Toolkits-Bash/issues/new)
+
 ### My Acclaro API Features & Benefits
 * RESTful endpoints to keep your content strings and files current across all locales
 * Speed up market launches of new, multilingual content
