@@ -2,7 +2,7 @@
 
 ### "Global" variables to work with
 SCRIPT=$( basename "$0" )
-VERSION="0.4-beta"
+VERSION="0.5-beta"
 consoleActivated=false #sets the console mode off by default
 
 ##################
@@ -40,7 +40,7 @@ function checkToolsInstalled()
 # Function to handle success messages
 function execSuccess()
 {
-	echo -e "$(date +%F\ %T) :: [\e[92mSUCCESS\e[39m] - $1" | tee -a ${logFile}
+	echo -e "$(date +%F\ %T) :: [\e[32mSUCCESS\e[39m] - $1" | tee -a ${logFile}
 } #execSuccess
 
 # Function to handle failed messages
