@@ -483,7 +483,6 @@ function postString ()
 		--data-raw "{\"strings\":[{\"value\":\"${sourceString}\",\"target_lang\":[\"${targertLang}\"],\"source_lang\": \"${sourceLang}\"}]}" \
 	)
 	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
-		#stringId=$(grep -oE '"string_id":[0-9]*' <<< "${response}" | sed 's@"string_id":@@')
 		stringId=$(jq -r '.data.strings[].string_id' <<< ${response})
 		execSuccess "Your string has been posted to Order [${orderId}] and has String ID: [${stringId}]" 
 	else
@@ -612,11 +611,8 @@ function getStringInfo ()
 		--header "Authorization: Bearer ${apiKey}" \
 	)
 	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
-		#translatedString=$(grep -oE '"translated_value":[^,]*,' <<< "${response}" | sed 's@"translated_value":@@')
 		translatedString=$(jq -r '.data.translated_value' <<< ${response})
-		#stringStatus=$(grep -oE '"status":"[^"]*"' <<< "${response}" | sed 's@"status":@@')
 		stringStatus=$(jq -r '.data.status' <<< "${response}")
-		#using the string status to evaluate if it was completed or not, can also be done the other way arround, if "complete" do this, else is not complete...
 		if [ "$stringStatus" != "complete" ]; then
 			execSuccess "Your Order [${orderId}] has a string with ID [${stringId}] which has not yet been translated, and its status is [${stringStatus}]."
 		else
@@ -668,12 +664,8 @@ function getFileInfo ()
 		--header "Authorization: Bearer ${apiKey}" \
 	)
 	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
-		#getting the attributes using bash methods only (python strongly recommended for JSON parsing)
-		#fileName=$(grep -oE '"filename":"[^"]*"' <<< "${response}" | sed 's@"filename":@@')
 		fileName=$(jq -r '.data.filename' <<< ${response})
-		#fileStatus=$(grep -oE '"status":"[^"]*"' <<< "${response}" | sed 's@"status":@@')
 		fileStatus=$(jq -r '.data.status' <<< ${response})
-		#targetFileId=$(grep -oE '"targetfile":[0-9]*' <<< "${response}" | sed 's@"targetfile":@@')
 		targetFileId=$(jq -r '.data.targetfile' <<< ${response})
 		if [[ "$fileStatus" == "complete" ]]; then
 			execSuccess "Your file [${fileName}] has been translated, status is [${fileStatus}]." 
@@ -790,7 +782,7 @@ function quoteWorkflow()
 		*)
 			execFailed "You should either decline or approve the quote [--approve/--decline]"
 			handleExit 1
-			return #so that it goes back to console
+			return 1 #stop executing quoteWorkflow
 		;;
 
 	esac
@@ -870,7 +862,6 @@ function sendReferenceFile()
 		--form "file=@\"${pathToReferenceFile}\"" \
 	)
 	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
-		#getting the file ID using bash methods only (python strongly recommended for JSON parsing)
 		fileId=$(jq -r '.data.fileid' <<< ${response})
 		execSuccess "Your reference file has been posted to Order [${orderId}] for the following target lang(s): [${targetLang}]" 
 	else
