@@ -468,7 +468,6 @@ function createAnOrder()
 		execFailed "There was a problem while creating your Order, please see the response below:"
 		echo ${response} | jq
 	fi
-	resultOrderId=${orderId}
 } #createAnOrder
 
 function postString ()
@@ -530,7 +529,6 @@ function sendFile ()
 		echo ${response} | jq
 		handleExit 1
 	fi
-	resultFileId=${fileId}
 } #sendFile
 
 function getOrderDetails ()
