@@ -2,7 +2,7 @@
 
 ### "Global" variables to work with
 SCRIPT=$( basename "$0" )
-VERSION="0.4-beta"
+VERSION="0.5-beta"
 consoleActivated=false #sets the console mode off by default
 
 ##################
@@ -40,7 +40,7 @@ function checkToolsInstalled()
 # Function to handle success messages
 function execSuccess()
 {
-	echo -e "$(date +%F\ %T) :: [\e[92mSUCCESS\e[39m] - $1" | tee -a ${logFile}
+	echo -e "$(date +%F\ %T) :: [\e[32mSUCCESS\e[39m] - $1" | tee -a ${logFile}
 } #execSuccess
 
 # Function to handle failed messages
@@ -342,10 +342,10 @@ function consoleMode()
 			;;
 		
 			create-order)
-				createAnOrder "${line[1]}"
+				createAnOrder "${line[1]}" "${line[2]}" 
 			;;
 			
-			post-sting)
+			post-string)
 				postString "${line[1]}" "${line[2]}" "${line[3]}" "${line[4]}"
 			;;
 			
@@ -483,7 +483,7 @@ function postString ()
 		--data-raw "{\"strings\":[{\"value\":\"${sourceString}\",\"target_lang\":[\"${targertLang}\"],\"source_lang\": \"${sourceLang}\"}]}" \
 	)
 	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
-		stringId=$(grep -oE '"string_id":[0-9]*' <<< "${response}" | sed 's@"string_id":@@')
+		stringId=$(jq -r '.data.strings[].string_id' <<< ${response})
 		execSuccess "Your string has been posted to Order [${orderId}] and has String ID: [${stringId}]" 
 	else
 		execFailed "There was a problem while posting your string, please see bellow the response:"
@@ -611,12 +611,9 @@ function getStringInfo ()
 		--header "Authorization: Bearer ${apiKey}" \
 	)
 	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
-		#getting the attributes using bash methods only (python strongly recommended for JSON parsing)
-		execSuccess " has the following strings submitted" 
-		translatedString=$(grep -oE '"translated_value":[^,]*,' <<< "${response}" | sed 's@"translated_value":@@')
-		stringStatus=$(grep -oE '"status":"[^"]*"' <<< "${response}" | sed 's@"status":@@')
-		#using the string status to evaluate if it was completed or not, can also be done the other way arround, if "complete" do this, else is not complete...
-		if [ "$stringStatus" != "\"complete\"" ]; then
+		translatedString=$(jq -r '.data.translated_value' <<< ${response})
+		stringStatus=$(jq -r '.data.status' <<< "${response}")
+		if [ "$stringStatus" != "complete" ]; then
 			execSuccess "Your Order [${orderId}] has a string with ID [${stringId}] which has not yet been translated, and its status is [${stringStatus}]."
 		else
 			execSuccess "Your Order [${orderId}] has a string with ID [${stringId}] which has been translated."
@@ -642,7 +639,7 @@ function getFile ()
 			--header "Authorization: Bearer ${apiKey}" \
 		)
 	if [ ${response} -eq 200 ]; then
-		writeFileTest=$(echo ${fileName} >${fileName}.test && rm ${fileName}.test) #test to check if we can write in the destination folder, cURL will not return an error for that
+		writeFileTest=$(echo ${fileName} >${fileName}.test && rm ${fileName}.test) #test to check if we can write in the destination folder, cURL will not return an error for that (ugly hack)
 		if [ $? -eq 0 ]; then
 			execSuccess "Your file with ID [${fileId}] has been downloaded here: ${fileName}" 
 		else
@@ -667,12 +664,12 @@ function getFileInfo ()
 		--header "Authorization: Bearer ${apiKey}" \
 	)
 	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
-		#getting the attributes using bash methods only (python strongly recommended for JSON parsing)
-		fileName=$(grep -oE '"filename":"[^"]*"' <<< "${response}" | sed 's@"filename":@@')
-		fileStatus=$(grep -oE '"status":"[^"]*"' <<< "${response}" | sed 's@"status":@@')
-		targetFileId=$(grep -oE '"targetfile":[0-9]*' <<< "${response}" | sed 's@"targetfile":@@')
-		if [[ "$fileStatus" == "\"complete\"" ]]; then
-			execSuccess "Your file [${fileName}] has been translated with status: [${fileStatus}], please proceed to download the file using file ID: [${targetFileId}]" 
+		fileName=$(jq -r '.data.filename' <<< ${response})
+		fileStatus=$(jq -r '.data.status' <<< ${response})
+		targetFileId=$(jq -r '.data.targetfile' <<< ${response})
+		if [[ "$fileStatus" == "complete" ]]; then
+			execSuccess "Your file [${fileName}] has been translated, status is [${fileStatus}]." 
+			echo "Please proceed to download the translated file using this file ID: [${targetFileId}]"
 		else
 			execSuccess "Your file [${fileName}] has yet not been translated and has status: [${fileStatus}]" 
 		fi
@@ -753,7 +750,7 @@ function getQuoteDetails()
 		--header "Authorization: Bearer ${apiKey}" \
 	)
 	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
-		totalQuote=$(echo ${response} | jq -r .data.total)
+		totalQuote=$(jq -r '.data.total' <<< ${response})
 		execSuccess "Quote details for Order [${orderId}] are bellow:"
 		echo ${response} | jq -r '["Description","Quantity","Unit Price","Subtotal"], ["-----------","--------","----------","--------"], (.data.lines[] | [.description, .quantity, "$"+.unitprice, "$"+.price])  | @tsv' | column -ts $'\t'
 		echo "** TOTAL: \$${totalQuote}" 
@@ -785,6 +782,7 @@ function quoteWorkflow()
 		*)
 			execFailed "You should either decline or approve the quote [--approve/--decline]"
 			handleExit 1
+			return 1 #stop executing quoteWorkflow
 		;;
 
 	esac
@@ -864,7 +862,6 @@ function sendReferenceFile()
 		--form "file=@\"${pathToReferenceFile}\"" \
 	)
 	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
-		#getting the file ID using bash methods only (python strongly recommended for JSON parsing)
 		fileId=$(jq -r '.data.fileid' <<< ${response})
 		execSuccess "Your reference file has been posted to Order [${orderId}] for the following target lang(s): [${targetLang}]" 
 	else
@@ -920,7 +917,7 @@ do
 			exit 0
 		;;
 		
-		--post-sting | -ps)
+		--post-string | -ps)
 			postString "$4" "$5" "$6" "$7"
 			exit 0
 		;;

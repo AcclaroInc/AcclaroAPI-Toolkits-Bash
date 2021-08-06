@@ -3,7 +3,7 @@ The purpose of this script is to facilitate our dev clients a seamless integrati
 
 The script is intended to be run on Bash 5.x or newer, older versions have not been tested, please bear this in mind when using it.
 
-The script offers the possibility interacting with My Acclaro Portal and requesting Acclaro services without leaving your current environment.
+The script offers the possibility of interacting with My Acclaro Portal and requesting Acclaro services without leaving your current environment.
 
 **Got any questions?** Contact support@acclaro.com or file an [issue](https://github.com/AcclaroInc/AcclaroAPI-Toolkits-Bash/issues/new)
 
@@ -15,7 +15,7 @@ The script offers the possibility interacting with My Acclaro Portal and request
 * Access API order data in the My Acclaro portal
 ### Links & Downloads
 * [Postman Acclaro API Endpoint Collection](https://documenter.getpostman.com/view/1843079/TzRUBT5g)
-* SDKs for JavaScript & PHP coming soon
+* SDKs for JavaScript & PHP - *coming soon*
 ### Next Steps
 * Read about our API [Case Studies](https://developers.acclaro.com/developers/devhub-case-studies)
 * Review the [API Reference Guide](https://developers.acclaro.com/developers/apireference-restful)
