@@ -13,7 +13,7 @@ The script offers the possibility of interacting with My Acclaro Portal and requ
 * Access API order data in the My Acclaro portal
 ### Links & Downloads
 * [Postman Acclaro API Endpoint Collection](https://documenter.getpostman.com/view/1843079/TzRUBT5g)
-* SDKs for JavaScript & PHP - *coming soon*
+* SDKs for JavaScript & PHP - :soon:
 ### Next Steps
 * Read about our API [Case Studies](https://developers.acclaro.com/developers/devhub-case-studies)
 * Review the [API Reference Guide](https://developers.acclaro.com/developers/apireference-restful)
