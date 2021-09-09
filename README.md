@@ -25,7 +25,7 @@ The script offers the possibility of interacting with My Acclaro Portal and requ
 1. Download the script from GitHub or clone our repository in your workstation/server
 2. Run `./myacclaro.sh --help` for more info
 
-Additionally, you may check the basic usage instructions in our wiki page [here](wiki/Basic-Usage).
+Additionally, you may check the basic usage instructions in our wiki page [here](https://github.com/AcclaroInc/AcclaroAPI-Toolkits-Bash/wiki).
 
 ### Dependencies
 The script will check that `curl` and `jq` are installed. 
