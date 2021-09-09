@@ -2,7 +2,7 @@
 
 ### "Global" variables to work with
 SCRIPT=$( basename "$0" )
-VERSION="0.5-beta"
+VERSION="0.7-beta"
 consoleActivated=false #sets the console mode off by default
 
 ##################
@@ -111,6 +111,146 @@ function versionConsole()
 {
 	echo "MyAcclaro Console ${VERSION}"
 } #versionConsole
+
+### TODO - Begin ###
+# reads the arguments for options (e.g. to add a name to an order or a source lang to a file) - call as `readArguments "$@"`
+function readArguments()
+{
+	positionalParms=()
+	while [[ $# -gt 0 ]] 
+	do
+		key="$1"
+		case ${key} in
+			--config)
+				configFile="$2"
+				shift # past argument
+				shift # past value
+			;;
+			
+			--url)
+				baseUrl="$2"
+				shift
+				shift
+			;;
+			
+			--apikey)
+				apiKey="$2"
+				shift
+				shift
+			;;
+			
+			--name)
+				orderName="$2"
+				shift
+				shift
+			;;
+			
+			--src)
+				sourceLang="$2"
+				shift
+				shift
+			;;
+			
+			--tgt)
+				targetLang="$2"
+				shift
+				shift
+			;;
+			
+			--duedate)
+				dueDate="$2"
+				shift
+				shift
+			;;
+			
+			--orderid)
+				orderId="$2"
+				shift
+				shift
+			;;
+			
+			--type)
+				orderType="$2"
+				shift
+				shift
+			;;
+			
+			--stringid)
+				stringId="$2"
+				shift
+				shift
+			;;	
+			
+			--string)
+				string="$2"
+				shift
+				shift
+			;;
+			
+			--fileid)
+				fileId="$2"
+				shift
+				shift
+			;;
+			
+			--filepath)
+				pathToFile="$2"
+				shift
+				shift
+			;;
+			
+			--encoding)
+				fileEncoding="$2"
+				shift
+				shift
+			;;
+			
+			--clientref)
+				clientRef="$2"
+				shift
+				shift
+			;;
+			
+			--comment)
+				commentLine="$2"
+				shift
+				shift
+			;;
+			
+			--callback)
+				callbackUrl="$2"
+				shift
+				shift
+			;;
+			
+			*)
+				#execFailed "Option "${key}" does not exist, please check 'help' for info."
+				positionalParms+=("$1") # save it in an array for later
+				shift # past argument
+			;;
+			
+		esac
+		
+		###
+		testArray=() # DEBUG
+		testArray+=("$1") # DEBUG
+		
+	done
+	set -- "${positionalParms[@]}" # restore positional parameters
+	#Print for debugging purposes only, delete from prod!!
+	
+	echo ${testArray[*]}
+	local txt=(
+		"Order Name: ${orderName}"
+		"Source Lang: ${sourceLang}"
+		"Target Lang: ${targetLang}"
+		"Due date: ${dueDate}"
+		"Order ID: ${orderId}"
+	)
+	printf "%s\n" "${txt[@]}"
+}
+### TODO - End ###
+
 
 # Message to display for usage and help (script). 
 function usage()
@@ -509,7 +649,7 @@ function sendFile ()
 	targetLang=$3
 	checkNotEmpty "${targetLang}" "<targertLang>"
 	pathToSourceFile=$4
-	checkNotEmpty "${pathToSourceFile}" "<path_to_file>"
+	checkNotEmpty "${pathToFile}" "<path_to_file>"
 	if [[ "${consoleDie}" == true ]]; then
 		return 1
 	fi
@@ -519,7 +659,7 @@ function sendFile ()
 		--header "Authorization: Bearer ${apiKey}" \
 		--form "sourcelang=\"${sourceLang}\"" \
 		--form "targetlang=\"${targetLang}\"" \
-		--form "file=@\"${pathToSourceFile}\"" \
+		--form "file=@\"${pathToFile}\"" \
 	)
 	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
 		fileId=$(jq -r '.data.fileid' <<< ${response})
@@ -897,7 +1037,7 @@ function sendReferenceFile()
 	targetLang=$3
 	checkNotEmpty "${targetLang}" "<targertLang>"
 	pathToReferenceFile=$4
-	checkNotEmpty "${pathToReferenceFile}" "<path_to_reference_file>"
+	checkNotEmpty "${pathToFile}" "<path_to_reference_file>"
 	if [[ "${consoleDie}" == true ]]; then
 		return 1
 	fi
@@ -907,7 +1047,7 @@ function sendReferenceFile()
 		--header "Authorization: Bearer ${apiKey}" \
 		--form "sourcelang=\"${sourceLang}\"" \
 		--form "targetlang=\"${targetLang}\"" \
-		--form "file=@\"${pathToReferenceFile}\"" \
+		--form "file=@\"${pathToFile}\"" \
 	)
 	if [ $? -eq 0 ] && [[ $(jq -r '.success' <<< ${response}) == true ]]; then
 		fileId=$(jq -r '.data.fileid' <<< ${response})
