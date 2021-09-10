@@ -648,7 +648,7 @@ function sendFile ()
 	checkNotEmpty "${sourceLang}" "<sourceLang>"
 	targetLang=$3
 	checkNotEmpty "${targetLang}" "<targertLang>"
-	pathToSourceFile=$4
+	pathToFile=$4
 	checkNotEmpty "${pathToFile}" "<path_to_file>"
 	if [[ "${consoleDie}" == true ]]; then
 		return 1
@@ -690,7 +690,7 @@ function getOrderDetails ()
 		dueDate=$(jq -r '.data.duedate' <<< "${response}") 
 		createdDate=$(jq -r '.data.created' <<< "${response}") 
 		createdBy=$(jq -r '.data.emailaddress' <<< "${response}")
-		sourceLang=$(jq -r '.data.sourcelang' <<< "${response}")
+		sourceLang=$(jq -r '.data.sourcelang[]' <<< "${response}")
 		targetLangs=$(jq -r '.data.targetlang[]' <<< "${response}")
 		execSuccess "Your Order [${orderId}] has the following attributes:" 
 		local txt=(
